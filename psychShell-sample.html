@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>My experiment</title>
+        <!-- load scripts -->
+        <script src="jsPsych/jspsych.js"></script>
+        <script src="jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
+        <script src="jsPsych/plugins/jspsych-image-keyboard-response.js"></script>
+        
+        <!-- styles -->
+        <link href="jsPsych/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+    </head>
+    <body></body>
+    <script>
+    /* create timeline */
+    var timeline = [];
+
+    /* define welcome message trial */
+    var welcome = {
+      type: "html-keyboard-response",
+      stimulus: "Welcome to the experiment. Press any key to begin."
+    };
+    timeline.push(welcome);
+
+        
+    /* define instructions trial */
+    var instructions = {
+      type: "html-keyboard-response",
+      stimulus: "<p>In this experiment, a circle will appear in the center " +
+          "of the screen.</p><p>If the circle is <strong>blue</strong>, " +
+          "press the letter F on the keyboard as fast as you can.</p>" +
+          "<p>If the circle is <strong>orange</strong>, press the letter J " +
+          "as fast as you can.</p>" +
+          "<div style='float: left;'><img src='instructionImg/blue.png'></img>" +
+          "<p class='small'><strong>Press the F key</strong></p></div>" +
+          "<div class='float: right;'><img src='instructionImg/orange.png'></img>" +
+          "<p class='small'><strong>Press the J key</strong></p></div>" +
+          "<p>Press any key to begin.</p>",
+      post_trial_gap: 2000
+    };
+    timeline.push(instructions);
+     
+           
+   /* define possible trials */
+   var test_stimuli = [
+            {stimulus: 'instructionImg/blue.png', data: {test_part: 'test', correct_response: 'f'}},
+            {stimulus: 'instructionImg/orange.png', data: {test_part: 'test', correct_response: 'j'}}
+        ];
+        
+   var fixation = {
+       type: 'html-keyboard-response',
+       stimulus: '<div style = "font-size:60px;">+</div>',
+       choices: jsPsych.NO_KEYS,
+       trial_duration: function(){
+           return jsPsych.randomization.sampleWithoutReplacement([250, 1000],1)
+       },
+       data: {test_part: 'fixation'}
+   }
+   
+   var test = {
+       type: "image-keyboard-response",
+       stimulus: jsPsych.timelineVariable('stimulus'),
+       choices: ['f', 'j'],
+       data: jsPsych.timelineVariable('data'),
+        on_finish: function(data){
+            data.correct = data.key_press == jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response);
+            data.response_letter = jsPsych.pluginAPI.convertKeyCodeToKeyCharacter(data.key_press);
+            }
+       
+   }
+   
+  var test_procedure = {
+        timeline: [fixation, test],
+        timeline_variables: test_stimuli,
+        randomize_order: true,
+        repetitions: 2
+  }
+        
+    timeline.push(test_procedure);
+
+        
+    /* start the experiment */
+    jsPsych.init({
+      timeline: timeline,
+      on_finish: function() {
+        jsPsych.data.displayData();
+      }
+    });
+
+    </script>
+</html>
