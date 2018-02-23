@@ -6,7 +6,8 @@
         <script src="jsPsych/jspsych.js"></script>
         <script src="jsPsych/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jsPsych/plugins/jspsych-image-keyboard-response.js"></script>
-        
+        <script src="jsPsych/plugins/jspsych-external-html.js"></script>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
         <!-- styles -->
         <link href="jsPsych/css/jspsych.css" rel="stylesheet" type="text/css"></link>
     </head>
@@ -41,7 +42,7 @@
     timeline.push(instructions);
      
            
-   /* define possible trials */
+   /* define possible circle trials */
    var test_stimuli = [
             {stimulus: 'instructionImg/blue.png', data: {test_part: 'test', correct_response: 'f'}},
             {stimulus: 'instructionImg/orange.png', data: {test_part: 'test', correct_response: 'j'}}
@@ -55,8 +56,16 @@
            return jsPsych.randomization.sampleWithoutReplacement([250, 1000],1)
        },
        data: {test_part: 'fixation'}
-   }
+   };
    
+ 
+    /* define graph trial as example */
+    var trial = {
+        type:'external-html',
+        url: "d3SampleBar.html",
+        cont_btn: "start"
+    };
+        
    var test = {
        type: "image-keyboard-response",
        stimulus: jsPsych.timelineVariable('stimulus'),
@@ -70,7 +79,7 @@
    }
    
   var test_procedure = {
-        timeline: [fixation, test],
+        timeline: [fixation, test, trial],
         timeline_variables: test_stimuli,
         randomize_order: true,
         repetitions: 2
