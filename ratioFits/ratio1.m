@@ -41,6 +41,10 @@ clearvars;
 % Here we call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
 
+[keyboardIndices, productNames, allInfos] = GetKeyboardIndices;
+kbPointer = keyboardIndices(end);
+KbName('UnifyKeyNames');
+
 % Get the screen numbers
 screens = Screen('Screens');
 
@@ -104,6 +108,10 @@ presentedRatio = ratioArrayOpts+randJitter; % will update with multiple trials
 % what type of stimulus are we doing the same/different task with?
 stimType = 'barGraphType';
 
+% preparing logging variables
+sameOrDiffTitle = {'same', 'different'};
+sameOrDiffResp  = {'f'   , 'j'};
+
 %% Start experiment loop
 
 try
@@ -118,12 +126,15 @@ try
         % set up trial [TODO: make sure each variable here is logged]
         ratioArrayIdx = randi([1 10],1,1); % which ratio difference (how different is each bar)?
         
-        position1 = randi([1 9], 1); %  first stimulus is presented in position1
-        position2 = randi([1 9], 1); % second stimulus is presented in position2
+        position = randi([1 9], 1, 2); %  first stimulus is presented in position1
+        
+        sameOrDiffRand  = randperm(2);
+        sameOrDiffTrial = sameOrDiffTitle{sameOrDiffRand(1)};
+        sameOrDiffCorr  = sameOrDiffResp{sameOrDiffRand(1)};
         
         presentationOrder = randperm(2); % which are we changing? 1 indicates the given ratio value; 2 indicates the one changing in response to threshold
         
-        if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar' for 
+        if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar' for
             
             % TODO: add a "same" control condition
             
@@ -132,23 +143,32 @@ try
             bar1Val = presentedRatio(ratioArrayIdx,1); % first bar, redundantly save data
             bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
             
+            % get the rectangle data
+            refRect=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels]);
+            if strcmpi('same', sameOrDiffTitle)
+                stimRect = refRect;
+            else
+                stimRect = barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
+            end
+            
+            %{
             % call function to get stimulus size, position, properties of
             % the changing, thresholded stimlus
-            [stimRect1, stimRect2] = ratio1StimulusVals(presentedRatio(ratioArrayIdx,:), {'position', position1}, [screenXpixels, screenYpixels]);
-            
+            [stimRect1, stimRect2] = ratio1StimulusVals(presentedRatio(ratioArrayIdx,:), {'position', position(1)}, [screenXpixels, screenYpixels]);
+            %}
             % call function to get stimulus size, position, properties of
             % the reference stimulus
-              [refRect1, refRect2] = ratio1StimulusVals(ratioArrayOpts(ratioArrayIdx,:), {'position', position2}, [screenXpixels, screenYpixels]);
+            
             
         end
         
         % present the first item
         if presentationOrder(1) == 2
             % first stimulus is the manipulated, psychophysical one
-            Screen('FillRect', windowPtr, [100 100 100], [stimRect1' stimRect2']);
+            Screen('FillRect', windowPtr, [100 100 100], stimRect);
         else
             % first stimulus is the reference one
-            Screen('FillRect', windowPtr, [100 100 100], [refRect1' refRect2']);
+            Screen('FillRect', windowPtr, [100 100 100], refRect);
         end
         
         % push to screen. note vbl is stimulus one onset time and marks removal of fixation cross.
@@ -158,40 +178,39 @@ try
         % present the second item
         if presentationOrder(2) == 2
             % second stimulus is the manipulated, psychophysical one
-            Screen('FillRect', windowPtr, [100 100 100], [stimRect1' stimRect2']);
+            Screen('FillRect', windowPtr, [100 100 100], stimRect);
         else
             % second stimulus is the reference one
-            Screen('FillRect', windowPtr, [100 100 100], [refRect1' refRect2']);
+            Screen('FillRect', windowPtr, [100 100 100], refRect);
         end
         
         % ... wait for waitframes to pass and flip the second stimulus
-        vbl2 = Screen('Flip', windowPtr, vbl + (waitframes - 0.5) * ifi);
+        WaitSecs(.5) % TODO use a proper timing method via Peter Scafe PTB demo
+        vbl2 = Screen('Flip', windowPtr);
         
         % ... wait for waitframes to pass and flip the response prompt
         responsePrompt([screenXpixels, screenYpixels], windowPtr)
-        vbl3 = Screen('Flip', windowPtr, vbl + (waitframes - 0.5) * ifi);
+        WaitSecs(.5)
+        vbl3 = Screen('Flip', windowPtr);
         
         %% 3) get response
         trialAcc = NaN; % set to 1 if they're right; 0 if they're wrong. Leave NaN for missed response.
         
-  
         touch = 0;
         
+        commandwindow
         while ~touch
             % Sleep one millisecond after each check, so we don't
             % overload the system in Rush or Priority > 0
             WaitSecs(0.001);
-            [touch, secs, keycode] = KbCheck;
+            [touch, secs, keycode,timingChk] = KbCheck(kbPointer);
             recordedAnswer = KbName(keycode);
+            beep % for dev [TODO] remove beep
         end
         clc; % clear command window, removing any typed characters
         
         
-        % determine accuracy. Hardcoded for development. [TODO]
-        correctAnswer = 'f';
-        
-        
-        if strcmpi(correctAnswer, recordedAnswer)
+        if strcmpi(sameOrDiffCorr, recordedAnswer)
             trialAcc = 1;
         else
             trialAcc = 0;
