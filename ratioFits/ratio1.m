@@ -39,7 +39,9 @@ close all;
 clearvars;
 
 % Basic experiment parameters
-nMinutes = 1; % maximum duration
+nMinutes = 1; % maximum durationj
+trialPerBlock = 2;
+
 experimentOpenTime = tic; testIfTimeUp = 0;
 
 % Here we call some default settings for setting up Psychtoolbox
@@ -118,7 +120,7 @@ sameOrDiffResp  = {'f'   , 'j'};
 
 % allow only task-relevant responses
 allowedResponses = [KbName(sameOrDiffResp{1}) KbName(sameOrDiffResp{2})];
-ret = RestrictKeysForKbCheck(allowedResponses);
+ret = RestrictKeysForKbCheck([allowedResponses 44]); % also 44 for spacebar
 
 % set-up intial psychometric values for Quest
 pThreshold=0.82;
@@ -137,12 +139,14 @@ end
 
 try
     endExp = 0; % escape condition
-    
+    trialIterator = 0; % count how many trials we've done
     %% 2) stimulus presentation
     while ~endExp && (testIfTimeUp < 60*nMinutes)
         
         % clear screen
         Screen('FillRect', windowPtr, lightGrey*255);
+        trialIterator = trialIterator + 1;
+        
         trialOnset = Screen('Flip', windowPtr);
         
         % add fixation cross
@@ -267,6 +271,18 @@ try
         
         % escape if time is up or accuracy is as good as it can be
         
+        
+        if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
+        % take a break
+        blockText([screenXpixels, screenYpixels], windowPtr, kbPointer)    
+        
+            
+        % save trial data to external file at the end of every block in
+        % case of crash. The full external dataset will be saved together using
+        % cbind after the experiment is finished; the .mat file will also
+        % be saved. 
+        
+        end
         %% 6) save final experiment level data
         Screen('FillRect', windowPtr, lightGrey);
         %endExp = 1;
