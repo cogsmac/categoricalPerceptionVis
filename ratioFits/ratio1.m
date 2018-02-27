@@ -38,6 +38,10 @@ sca;
 close all;
 clearvars;
 
+% Basic experiment parameters
+nMinutes = 1; % maximum duration
+experimentOpenTime = tic; testIfTimeUp = 0;
+
 % Here we call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
 
@@ -54,9 +58,10 @@ screenNumber = max(screens);
 % Define black and white
 white = WhiteIndex(screenNumber);
 black = BlackIndex(screenNumber);
+lightGrey = [.75 .75 .75];
 
 % Open an on screen window
-[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, [.75 .75 .75], [1 1 900 500]);
+[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey, [1 1 900 500]);
 
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', windowPtr);
@@ -77,11 +82,10 @@ ifi = Screen('GetFlipInterval', windowPtr);
 topPriorityLevel = MaxPriority(windowPtr);
 Priority(topPriorityLevel);
 
-% Here we use to a waitframes number greater then 1 to flip at a rate not
-% equal to the monitors refreash rate. For this example, once per second,
-% to the nearest frame
+% Using Scarfe's waitframe method to improve timing accuracy
 flipSecs = .75;
-waitframes = round(flipSecs / ifi); % for the presentation of the two stimuli
+waitframes = round(flipSecs / ifi);
+
 
 % hard coded for development
 ratioArrayOpts = [
@@ -112,17 +116,45 @@ stimType = 'barGraphType';
 sameOrDiffTitle = {'same', 'different'};
 sameOrDiffResp  = {'f'   , 'j'};
 
+% allow only task-relevant responses
+allowedResponses = [KbName(sameOrDiffResp{1}) KbName(sameOrDiffResp{2})];
+ret = RestrictKeysForKbCheck(allowedResponses);
+
+% set-up intial psychometric values for Quest
+pThreshold=0.82;
+beta=3.5;delta=0.01;gamma=0.5;
+guessThreshold = .1;
+guessSD = 3;
+% one fit for each ratio match
+qu=table;
+for i = 1:length(ratioArrayOpts)
+    qu.(i)=QuestCreate(guessThreshold,guessSD,pThreshold,beta,delta,gamma);
+    qu.(i).normalizePdf=1;
+    qu.(i).referenceRatio = ratioArrayOpts(i);
+end
+
 %% Start experiment loop
 
 try
     endExp = 0; % escape condition
     
     %% 2) stimulus presentation
-    while ~endExp
+    while ~endExp && (testIfTimeUp < 60*nMinutes)
         
-        % fixation cross [TODO: formatting]
-        vbl = Screen('Flip', windowPtr);
+        % clear screen
+        Screen('FillRect', windowPtr, lightGrey*255);
+        trialOnset = Screen('Flip', windowPtr);
         
+        % add fixation cross
+        fixationCross = '+';
+        % Horizontally and vertically centered:
+        [nx, ny, bbox] = DrawFormattedText(windowPtr, fixationCross, 'center', 'center', 0);
+        
+
+        % Flip to the screen (wait just three frames)
+        fixationOnset = Screen('Flip', windowPtr, trialOnset + 3 * ifi);
+
+        WaitSecs(.050)
         % set up trial [TODO: make sure each variable here is logged]
         ratioArrayIdx = randi([1 10],1,1); % which ratio difference (how different is each bar)?
         
@@ -135,8 +167,6 @@ try
         presentationOrder = randperm(2); % which are we changing? 1 indicates the given ratio value; 2 indicates the one changing in response to threshold
         
         if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar' for
-            
-            % TODO: add a "same" control condition
             
             % the thresholded, comparison; one will always be 1, one will
             % be some proportion
@@ -151,97 +181,95 @@ try
                 stimRect = barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
             end
             
-            %{
-            % call function to get stimulus size, position, properties of
-            % the changing, thresholded stimlus
-            [stimRect1, stimRect2] = ratio1StimulusVals(presentedRatio(ratioArrayIdx,:), {'position', position(1)}, [screenXpixels, screenYpixels]);
-            %}
-            % call function to get stimulus size, position, properties of
-            % the reference stimulus
-            
-            
         end
         
         % present the first item
         if presentationOrder(1) == 2
             % first stimulus is the manipulated, psychophysical one
-            Screen('FillRect', windowPtr, [100 100 100], stimRect);
+            Screen('FillRect', windowPtr, lightGrey/2, stimRect);
         else
             % first stimulus is the reference one
-            Screen('FillRect', windowPtr, [100 100 100], refRect);
+            Screen('FillRect', windowPtr, lightGrey/2, refRect);
         end
         
         % push to screen. note vbl is stimulus one onset time and marks removal of fixation cross.
         % fixation cross is on screen 1/4 the duration of the stimuli.
-        vbl = Screen('Flip', windowPtr, vbl + (waitframes/4 - 0.5) * ifi);
-        
+        stimulus1Onset = Screen('Flip', windowPtr, fixationOnset + (waitframes - 0.5) * ifi);
+                
         % present the second item
         if presentationOrder(2) == 2
             % second stimulus is the manipulated, psychophysical one
-            Screen('FillRect', windowPtr, [100 100 100], stimRect);
+            Screen('FillRect', windowPtr, lightGrey/2, stimRect);
         else
             % second stimulus is the reference one
-            Screen('FillRect', windowPtr, [100 100 100], refRect);
+            Screen('FillRect', windowPtr, lightGrey/2, refRect);
         end
         
         % ... wait for waitframes to pass and flip the second stimulus
-        WaitSecs(.5) % TODO use a proper timing method via Peter Scafe PTB demo
-        vbl2 = Screen('Flip', windowPtr);
+        %WaitSecs(.5) % TODO use a proper timing method via Peter Scafe PTB demo
+        stimulus2Onset = Screen('Flip', windowPtr, stimulus1Onset + (waitframes - 0.5) * ifi);
         
         % ... wait for waitframes to pass and flip the response prompt
         responsePrompt([screenXpixels, screenYpixels], windowPtr)
-        WaitSecs(.5)
-        vbl3 = Screen('Flip', windowPtr);
+        %WaitSecs(.5)
         
         %% 3) get response
         trialAcc = NaN; % set to 1 if they're right; 0 if they're wrong. Leave NaN for missed response.
-        
         touch = 0;
         
-        commandwindow
+        commandwindow; % record key presses outside of experiment in command line so code doesn't get messy
+        
+        promptOnset = Screen('Flip', windowPtr, stimulus2Onset + (waitframes - 0.5) * ifi);
+        responseOnset = tic; % should the same as prompOnset; coding for safe redundancy/checking
         while ~touch
             % Sleep one millisecond after each check, so we don't
             % overload the system in Rush or Priority > 0
             WaitSecs(0.001);
             [touch, secs, keycode,timingChk] = KbCheck(kbPointer);
             recordedAnswer = KbName(keycode);
-            beep % for dev [TODO] remove beep
         end
+        responseTime = toc(responseOnset);
+        
         clc; % clear command window, removing any typed characters
         
         
         if strcmpi(sameOrDiffCorr, recordedAnswer)
             trialAcc = 1;
+            
+            % Color the screen
+            Screen('FillRect', windowPtr, [0 255 0]);
+            
         else
             trialAcc = 0;
+            
+            Screen('FillRect', windowPtr, [255 0 0]);
         end
         
-        % [TODO] some visual confirmation of response
+        % feedback is a flash 1/4 the duration of stimulus presentation
+        feedbackOnset = Screen('Flip', windowPtr, promptOnset + (waitframes/4 - 0.5) * ifi);
         
         %% 4) adjust staircase
-        
-        % [TODO] at this point we'll have determined which ratioArrayOpts we're on.
-        % This is presently hardcoded for development.
-        ratioArrayIdx = 1; % points to the staircase that we're fitting
-        
-        tTest=QuestQuantile(qu(ratioArrayIdx));
-        % Update the pdf
-        qu(ratioArrayIdx)=QuestUpdate(qu(ratioArrayIdx),tTest,trialAcc); % Add the new datum (actual test intensity and observer response) to the database.
-        
-        % output of the QuestUpdate to inform the stimulus presentation.
-        presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx))=qu(ratioArrayIdx).intensity(qu(ratioArrayIdx).trialCount);
-        
+        if strcmpi('different', sameOrDiffTrial)
+            tTest=QuestQuantile(qu.(ratioArrayIdx));
+            % Update the pdf
+            qu.(ratioArrayIdx)=QuestUpdate(qu.(ratioArrayIdx),tTest,trialAcc); % Add the new datum (actual test intensity and observer response) to the database.
+            
+            % output of the QuestUpdate to inform the stimulus presentation.
+            presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx))=presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx)) + ...
+                qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount);
+        end
         %% 5) check thresholds
         
         % temporal threshold
+        testIfTimeUp=toc(experimentOpenTime);
         
-        % accuracy threshold
+        % accuracy threshold [TODO]
         
         % escape if time is up or accuracy is as good as it can be
         
         %% 6) save final experiment level data
-        
-        endExp = 1;
+        Screen('FillRect', windowPtr, lightGrey);
+        %endExp = 1;
         %% end
     end
     
