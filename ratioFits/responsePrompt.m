@@ -21,7 +21,7 @@ function responsePrompt(screenDimension, windowPtr)
 %
 %  Additional Comments:
 
-responsePromptText = 'Same or Different?';
+responsePromptText = 'Same or different?';
 buttonReminderSame = 'f';
 buttonReminderDiff = 'j';
 
