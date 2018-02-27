@@ -1,10 +1,11 @@
 %  This function takes stimulus values as input, and draws the bars as
 %  output
 %  
-function [stimPair1, stimPair2] = ratio1StimulusVals(...
-                                  ratioArray, ...
+function [stimRect1, stimRect2] = ratio1StimulusVals(...
+                                  presentedRatio, ...
                                   irrelevantChange, ...
-                                  screenSize)
+                                  screenSize, ...
+                                  positionIdx)
 
 %  Author: Caitlyn McColeman
 %  Date Created: Feb 26 2018 
@@ -17,7 +18,7 @@ function [stimPair1, stimPair2] = ratio1StimulusVals(...
 %  Verified: [] 
 %  
 %  INPUT: 
-%       ratioArray, vect; the value of the two items. One is 1; the other
+%       presentedRatio, vect; the value of the two items. One is 1; the other
 %               is a proportion of the height of the 1 (reference) value.
 %       irrelevantChange, cell; the method by which the two presented items
 %               are not exactly the same on the screen. Currently accepts
@@ -39,12 +40,43 @@ function [stimPair1, stimPair2] = ratio1StimulusVals(...
 %       default size for a full-size bar is 1/4 of the screen height, 1/16 its width.
 
 
- rectWidth = screenSize(1)/16;
-rectHeight = screenSize(2)/4;
+     rectWidth = screenSize(1)/18;
+fullRectHeight = screenSize(2)/4; % so 100% of the ratio is 1/4 the screen
 
+% determine heights of bars
+heightBar1 = presentedRatio(1)*fullRectHeight;
+heightBar2 = presentedRatio(2)*fullRectHeight;
 
-stimPair1 = CenterRectOnPointd([0 0 rectWidth rectHeight],...
-        x, y);
+% figure out where to centre them
+posCenters = positionRef(screenSize); % get the closest ninth
 
+if strcmpi(irrelevantChange{1}, 'position')
+    positionIdx = irrelevantChange{2};
+else
+    positionIdx = 5;
+end
+% shimmy a bit so the two bars straddle the centroid of this ninth
+x1Bar1 = posCenters(positionIdx, 1)-1.5*(rectWidth); % x dimension
+x2Bar1 = x1Bar1 + rectWidth; % x dimension
 
+x1Bar2 = posCenters(positionIdx, 1)+.5*(rectWidth);
+x2Bar2 = x1Bar2 + rectWidth;
+
+if presentedRatio(1)==1 % if the left bar is larger
+    y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower is higher on screen
+    y2Bar1 = y1Bar1 + heightBar1;
+    
+    y1Bar2 = y2Bar1 - heightBar2; % not quite as tall as bar 1
+    y2Bar2 = y2Bar1; % positions along aligned scale -- bottoms line up.
+else
+    y1Bar2 = posCenters(positionIdx, 2)-.5*(heightBar2); % lower is higher on screen
+    y2Bar2 = y1Bar2 + heightBar2;
+    
+    y1Bar1 = y1Bar2 - heightBar2; % not quite as tall as bar 1
+    y2Bar1 = y2Bar2; % positions along aligned scale -- bottoms line up.
+    
+end
+
+stimRect1 = [x1Bar1, y1Bar1, x2Bar1, y2Bar1];
+stimRect2 = [x1Bar2, y1Bar2, x2Bar2, y2Bar2];
 
