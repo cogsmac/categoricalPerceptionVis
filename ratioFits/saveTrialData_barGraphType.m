@@ -10,7 +10,7 @@ function saveTrialData_barGraphType(subID, ...  participantID
     ratioArrayIdx, ... % whichRatio
     questObject, ... % for the SA (staircase analysis) variables
     presentedRatio... % presentedRatio; stimulus value in ratio space
-    ) 
+    )
 
 %
 %  Author: Caitlyn McColeman
@@ -37,7 +37,7 @@ function saveTrialData_barGraphType(subID, ...  participantID
 %                                                  ratioArrayOpts to determine reference values
 %      % formatting text file %
 varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
-varTypes_BA = ['     %s \t           %s \t          %u \t          %s \t           %s \t           %u \t         %u \t  '];
+varTypes_BA = ['     %s\t           %s\t          %u\t          %s\t           %s\t           %d\t         %d\t  '];
 dataIn_BA   = { num2str(subID)     stimType     trialIterator  sameOrDiffTrial  recordedAnswer    trialAcc   ratioArrayIdx};
 %
 %
@@ -45,19 +45,39 @@ dataIn_BA   = { num2str(subID)     stimType     trialIterator  sameOrDiffTrial  
 %
 %
 %       % STAIRCASE ANALYSIS VARIABLES % save only for "different" trials
-qu = questObject; 
-%              testedRatio, decimal; qu.(ratioArrayIdx).referenceRatio
-%       ratioPresentations, integer; qu.(ratioArrayIdx).trialCount
-%        abstractIntensity, decimal; qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)
+qu = questObject;
+%              testedRatio, decimal; qu.referenceRatio
+%       ratioPresentations, integer; qu.trialCount
+%        abstractIntensity, decimal; qu.intensity(qu.trialCount)
 %   `       presentedRatio, decimal; [TODO calculated in experiment file and offered as input to this function]
-%       estimatedThreshold, decimal; qu.(ratioArrayIdx).xThreshold
-%                 response, logical; qu.(ratioArrayIdx).response
-%            quantileOrder, decimal; qu.(ratioArrayIdx).quantileOrder
+%       estimatedThreshold, decimal; qu.xThreshold
+%                 response, logical; qu.response
+%            quantileOrder, decimal; qu.quantileOrder
 %
 %      % formatting text file %
-varNames_SA = {          'testedRatio',             'nRatioPresentations',                          'abstractIntensity',                      'presentedRatio',        'estimatedThreshold',                     'response',                    'quantileOrder'    };
-varTypes_SA = [             '%1.6f \t                       %d \t                                          %3.6f \t                                 %s \t                     %3.6f \t                             %u \t                          %1.6f \t'        ];
-dataIn_SA   = {qu.(ratioArrayIdx).referenceRatio qu.(ratioArrayIdx).trialCount  qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)  mat2str(presentedRatio)  qu.(ratioArrayIdx).xThreshold   qu.(ratioArrayIdx).response  qu.(ratioArrayIdx).quantileOrder};
+
+
+varNames_SA = { 'testedRatio',       'nRatioPresentations',     'abstractIntensity',       'presentedRatio',          'estimatedThreshold',          'response',          'quantileOrder'};
+varTypes_SA = [   '%1.6f\t                  %d\t                     %3.6f\t                    %s\t                       %3.6f\t                     %u\t                    %1.6f '  ];
+
+if strcmpi(sameOrDiffTrial, 'different')
+    dataIn_SA   = {qu.referenceRatio          qu.trialCount        qu.intensity(qu.trialCount)  mat2str(presentedRatio)    qu.xThreshold     qu.response(qu.trialCount)   qu.quantileOrder  };
+else % qu object will not be updated on 'same' trials. Just save some blank values to hold place
+    dataIn_SA ={mat2str(presentedRatio)          NaN                         NaN                mat2str(presentedRatio)            NaN                     trialAcc             NaN     };
+end
+
+
+
+% Open/create a script named after this subject; spec. permission to append
+fID = fopen([ num2str(subID) 'trialLvl.txt'], 'a+');
+%fprintf(fID, [varTypes_BA varTypes_SA '\r\n'], [dataIn_BA{:} dataIn_SA{:}]); % save data
+testData = dataIn_BA;
+testDat2 = dataIn_SA;
+%fprintf(fID, [varTypes_BA  '\n'], [dataIn_BA{:} ]); % save data
+%fprintf(fID, [varTypes_BA  '\n'], testData{:}); % save data
+fprintf(fID, [varTypes_SA  '\n'], testDat2{:}); % save data
+fclose(fID); % close the file connection
+
 %
 %
 %       % DETAIL METHOD VARIABLES %
@@ -76,9 +96,5 @@ dataIn_SA   = {qu.(ratioArrayIdx).referenceRatio qu.(ratioArrayIdx).trialCount  
 %  Additional Comments:
 
 
-% Open/create a script named after this subject; spec. permission to append
-fID = fopen([ num2str(subID) 'trialLvl.tsv'], 'a');
-fprintf(fID, [varTypes_BA varTypes_SA '\r\n'], [dataIn_BA{:} dataIn_SA{:}]); % save data
-fclose(fID); % close the file connection 
 
 
