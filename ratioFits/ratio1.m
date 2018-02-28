@@ -38,9 +38,11 @@ sca;
 close all;
 clearvars;
 
+subID = 007;
+
 % Basic experiment parameters
-nMinutes = 1; % maximum durationj
-trialPerBlock = 2;
+nMinutes = 1; % maximum duration
+trialPerBlock = 200;
 
 experimentOpenTime = tic; testIfTimeUp = 0;
 
@@ -234,7 +236,7 @@ try
         end
         responseTime = toc(responseOnset);
         
-        clc; % clear command window, removing any typed characters
+        clc; % clear command window, removing any typedjf characters
         
         
         if strcmpi(sameOrDiffCorr, recordedAnswer)
@@ -266,15 +268,20 @@ try
         
         % temporal threshold
         testIfTimeUp=toc(experimentOpenTime);
-        
+        testIfTimeUp < 60*nMinutes;
         % accuracy threshold [TODO]
         
         % escape if time is up or accuracy is as good as it can be
         
+        % save data
+        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayIdx, qu.(ratioArrayIdx), presentedRatio(ratioArrayIdx))
+        
         
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
+        
+            
         % take a break
-        blockText([screenXpixels, screenYpixels], windowPtr, kbPointer)    
+        blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime)    
         
             
         % save trial data to external file at the end of every block in
