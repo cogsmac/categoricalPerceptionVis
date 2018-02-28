@@ -67,6 +67,14 @@ else % qu object will not be updated on 'same' trials. Just save some blank valu
 end
 
 
+if ~(exist([num2str(subID) 'trialLvl.txt'])==2)
+    fID = fopen([ num2str(subID) 'trialLvl.txt'], 'w+');
+    
+    % basic analysis
+    varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
+    varTypes_BA = ['     %s\t             %s\t          %s\t            %s\t             %s\t            %s\t         %s\t  '];
+    fprintf(fID, [varTypes_BA  '\n'], varTypes_BA{:}); % save data
+end
 
 % Open/create a script named after this subject; spec. permission to append
 fID = fopen([ num2str(subID) 'trialLvl.txt'], 'a+');
