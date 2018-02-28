@@ -7,7 +7,10 @@ function saveTrialData_barGraphType(subID, ...  participantID
     sameOrDiffTrial, ... sameOrDiffTrial
     recordedAnswer, ... letterResponse
     trialAcc, ... accuracy
-    ratioArrayIdx) % whichRatio
+    ratioArrayIdx, ... % whichRatio
+    questObject, ... % for the SA (staircase analysis) variables
+    presentedRatio... % presentedRatio; stimulus value in ratio space
+    ) 
 
 %
 %  Author: Caitlyn McColeman
@@ -34,15 +37,15 @@ function saveTrialData_barGraphType(subID, ...  participantID
 %                                                  ratioArrayOpts to determine reference values
 %      % formatting text file %
 varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
-varTypes_BA = ['     %s               %s              %u             %s               %s              %u           %u    '];
-dataIn_BA   = {     subID          stimType      trialIterator  sameOrDiffTrial    recordedAnswer  trialAcc  ratioArrayIdx};
+varTypes_BA = ['     %s \t           %s \t          %u \t          %s \t           %s \t           %u \t         %u \t  '];
+dataIn_BA   = { num2str(subID)     stimType     trialIterator  sameOrDiffTrial  recordedAnswer    trialAcc   ratioArrayIdx};
 %
 %
 %       [TO DO - rt variables and onset timing]
 %
 %
 %       % STAIRCASE ANALYSIS VARIABLES % save only for "different" trials
-%
+qu = questObject; 
 %              testedRatio, decimal; qu.(ratioArrayIdx).referenceRatio
 %       ratioPresentations, integer; qu.(ratioArrayIdx).trialCount
 %        abstractIntensity, decimal; qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)
@@ -50,6 +53,12 @@ dataIn_BA   = {     subID          stimType      trialIterator  sameOrDiffTrial 
 %       estimatedThreshold, decimal; qu.(ratioArrayIdx).xThreshold
 %                 response, logical; qu.(ratioArrayIdx).response
 %            quantileOrder, decimal; qu.(ratioArrayIdx).quantileOrder
+%
+%      % formatting text file %
+varNames_SA = {          'testedRatio',             'nRatioPresentations',                          'abstractIntensity',                      'presentedRatio',        'estimatedThreshold',                     'response',                    'quantileOrder'    };
+varTypes_SA = [             '%1.6f \t                       %d \t                                          %3.6f \t                                 %s \t                     %3.6f \t                             %u \t                          %1.6f \t'        ];
+dataIn_SA   = {qu.(ratioArrayIdx).referenceRatio qu.(ratioArrayIdx).trialCount  qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)  mat2str(presentedRatio)  qu.(ratioArrayIdx).xThreshold   qu.(ratioArrayIdx).response  qu.(ratioArrayIdx).quantileOrder};
+%
 %
 %       % DETAIL METHOD VARIABLES %
 %
@@ -67,11 +76,9 @@ dataIn_BA   = {     subID          stimType      trialIterator  sameOrDiffTrial 
 %  Additional Comments:
 
 
-% Open/create a script named after this subject; permission to write/append
-fID = fopen([ num2str(subID) 'trialLvl.txt'], 'w');
-
-dat = {'cats', 8}
-fprintf(fID, varTypes_BA, dataIn_BA{:});
-fclose(fID);
+% Open/create a script named after this subject; spec. permission to append
+fID = fopen([ num2str(subID) 'trialLvl.tsv'], 'a');
+fprintf(fID, [varTypes_BA varTypes_SA '\r\n'], [dataIn_BA{:} dataIn_SA{:}]); % save data
+fclose(fID); % close the file connection 
 
 
