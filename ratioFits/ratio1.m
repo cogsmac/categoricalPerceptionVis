@@ -134,7 +134,7 @@ qu=table;
 for i = 1:length(ratioArrayOpts)
     qu.(i)=QuestCreate(guessThreshold,guessSD,pThreshold,beta,delta,gamma);
     qu.(i).normalizePdf=1;
-    qu.(i).referenceRatio = ratioArrayOpts(i);
+    qu.(i).referenceRatio = ratioArrayOpts(i,:);
 end
 
 %% Start experiment loop
@@ -274,7 +274,7 @@ try
         % escape if time is up or accuracy is as good as it can be
         
         % save data [TO DO]
-        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayIdx, qu.(ratioArrayIdx), presentedRatio(ratioArrayIdx))
+        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayIdx, qu.(ratioArrayIdx), presentedRatio(ratioArrayIdx,:))
         display(presentedRatio(ratioArrayIdx))
         
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
