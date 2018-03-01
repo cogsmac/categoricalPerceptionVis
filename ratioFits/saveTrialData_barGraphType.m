@@ -34,18 +34,13 @@ function saveTrialData_barGraphType(subID, ...  participantID
 %     letterResponse,  string; recordedAnswer    - the actual button pressed
 %           accuracy, logical; trialAcc          - correct/incorrect response
 %         whichRatio, integer; ratioArrayIdx     - a way to index into
-%                                                  ratioArrayOpts to determine reference values
-%      % formatting text file %
-varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
-varTypes_BA = ['     %s\t           %s\t          %u\t          %s\t           %s\t           %d\t         %d\t  '];
-dataIn_BA   = { num2str(subID)     stimType     trialIterator  sameOrDiffTrial  recordedAnswer    trialAcc   ratioArrayIdx};
+%                                                  ratioArrayOpts to determine reference value
 %
 %
 %       [TO DO - rt variables and onset timing]
 %
 %
 %       % STAIRCASE ANALYSIS VARIABLES % save only for "different" trials
-qu = questObject;
 %              testedRatio, decimal; qu.referenceRatio
 %       ratioPresentations, integer; qu.trialCount
 %        abstractIntensity, decimal; qu.intensity(qu.trialCount)
@@ -57,33 +52,46 @@ qu = questObject;
 %      % formatting text file %
 
 
-varNames_SA = { 'testedRatio',       'nRatioPresentations',     'abstractIntensity',       'presentedRatio',          'estimatedThreshold',          'response',          'quantileOrder'};
-varTypes_SA = [   '%1.6f\t                  %d\t                     %3.6f\t                    %s\t                       %3.6f\t                     %u\t                    %1.6f '  ];
 
+% basic analysis
+varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
+varTypes_BA = ['     %s\t           %s\t             %u\t           %s\t             %s\t           %d\t         %d\t  '];
+dataIn_BA   = { num2str(subID)     stimType     trialIterator  sameOrDiffTrial  recordedAnswer    trialAcc   ratioArrayIdx};
+
+
+
+% staircase analysis
+varNames_SA   = { 'testedRatio',       'nRatioPresentations',     'abstractIntensity',       'presentedRatio',          'estimatedThreshold',          'response',          'quantileOrder'};
 if strcmpi(sameOrDiffTrial, 'different')
-    dataIn_SA   = {qu.referenceRatio          qu.trialCount        qu.intensity(qu.trialCount)  mat2str(presentedRatio)    qu.xThreshold     qu.response(qu.trialCount)   qu.quantileOrder  };
+    qu = questObject;
+    dataIn_SA ={mat2str(qu.referenceRatio)    qu.trialCount        qu.intensity(qu.trialCount)  mat2str(presentedRatio)    qu.xThreshold     qu.response(qu.trialCount)   qu.quantileOrder  };
 else % qu object will not be updated on 'same' trials. Just save some blank values to hold place
     dataIn_SA ={mat2str(presentedRatio)          NaN                         NaN                mat2str(presentedRatio)            NaN                     trialAcc             NaN     };
 end
+varTypes_SA   = [    '%s\t                  %d\t                     %3.6f\t                    %s\t                       %3.6f\t                     %u\t                    %1.6f '  ];
 
 
 if ~(exist([num2str(subID) 'trialLvl.txt'])==2)
-    fID = fopen([ num2str(subID) 'trialLvl.txt'], 'w+');
+    fID = fopen([ num2str(subID) 'trialLvl.txt'], 'a+'); % open file
     
-    % basic analysis
-    varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
-    varTypes_BA = ['     %s\t             %s\t          %s\t            %s\t             %s\t            %s\t         %s\t  '];
-    fprintf(fID, [varTypes_BA  '\n'], varTypes_BA{:}); % save data
+    % all the variable names are strings; save as such
+    varTypes_names = repmat('%s\t ', 1, length(varNames_BA)+length(varNames_SA));
+    
+    namesIn = {varNames_BA{:} varNames_SA{:}};
+    
+    % push to file
+    fprintf(fID, [varTypes_names '\n'], namesIn{:}); % save data
+    
+    % close connection to file
+    fclose(fID)
 end
 
-% Open/create a script named after this subject; spec. permission to append
+
+% Open/create a file named after this subject; spec. permission to append
 fID = fopen([ num2str(subID) 'trialLvl.txt'], 'a+');
-%fprintf(fID, [varTypes_BA varTypes_SA '\r\n'], [dataIn_BA{:} dataIn_SA{:}]); % save data
-testData = dataIn_BA;
-testDat2 = dataIn_SA;
-%fprintf(fID, [varTypes_BA  '\n'], [dataIn_BA{:} ]); % save data
-%fprintf(fID, [varTypes_BA  '\n'], testData{:}); % save data
-fprintf(fID, [varTypes_SA  '\n'], testDat2{:}); % save data
+
+dataIn = {dataIn_BA{:} dataIn_SA{:}};
+fprintf(fID, [varTypes_BA varTypes_SA  '\n'], dataIn{:}); % save data
 fclose(fID); % close the file connection
 
 %
