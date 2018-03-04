@@ -2,6 +2,8 @@
 %  participants compare the value of two pairs of graphed values. It is a
 %  simple same/different task.
 %
+function ratio1(subID)
+%
 %  Author: Caitlyn McColeman
 %  Date Created: Feburary 26 2018
 %  Last Edit:
@@ -41,12 +43,12 @@ clearvars;
 debugMode = 0;
 
 if debugMode
-    
+subID = 1    
 end
-subID = 12;
+
 
 % Basic experiment parameters
-nMinutes = 10; % maximum duration
+nMinutes = 20; % maximum duration
 trialPerBlock = 120;
 
 experimentOpenTime = tic; testIfTimeUp = 0;
@@ -60,6 +62,7 @@ KbName('UnifyKeyNames');
 
 % Get the screen numbers
 screens = Screen('Screens');
+Screen('Preference', 'SkipSyncTests', 1)
 
 % Draw to the external screen if avaliable
 screenNumber = max(screens);
@@ -70,7 +73,7 @@ black = BlackIndex(screenNumber);
 lightGrey = [.75 .75 .75];
 
 % Open an on screen window
-[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey, [1 1 1200 750]);
+[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey)%, [1 1 1200 750]);
 
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', windowPtr);
@@ -96,7 +99,7 @@ flipSecs = .75;
 waitframes = round(flipSecs / ifi);
 
 
-% which ratios are we testing? 
+% which ratios are we testing?
 ratioArrayOpts = [
     .50, 1;
     %.55, 1;
@@ -104,19 +107,16 @@ ratioArrayOpts = [
     %.45, 1;
     .40, 1;
     1, .50;
-   % 1, .55;
+    % 1, .55;
     1, .60;
-   % 1, .45;
+    % 1, .45;
     1, .40]; %one staircase for each of these
 
 % which are we comparing to? (What doesn't change in psychophysical
 % function trials)?
 isReferenceBar = ratioArrayOpts == 1;
 
-% staircase settings
-%randJitter = rand(length(ratioArrayOpts),2)/100; % very little bit of noise. Essentially impossible to start.
-%randJitter(isReferenceBar==1)=0;
-presentedRatio = ratioArrayOpts;%+randJitter; % will update with multiple trials
+presentedRatio = ratioArrayOpts; % initialize
 
 % what type of stimulus are we doing the same/different task with?
 stimType = 'barGraphType';
@@ -134,6 +134,7 @@ pThreshold=0.82;
 beta=3.5;delta=0.01;gamma=0.5;
 guessThreshold = log(.1);
 guessSD = 3;
+
 % one fit for each ratio match
 qu=table;
 for i = 1:length(ratioArrayOpts)
@@ -163,10 +164,10 @@ try
         
         
         % Flip to the screen (wait just three frames)
-        Screen('FillRect', windowPtr, lightGrey);
+        
         fixationOnset = Screen('Flip', windowPtr, trialOnset + 3 * ifi);
         
-        WaitSecs(.050)
+        WaitSecs(.020)
         % set up trial [TODO: make sure each variable here is logged]
         ratioArrayIdx = randi([1 length(ratioArrayOpts)],1,1); % which ratio difference (how different is each bar)?
         
@@ -178,7 +179,7 @@ try
         
         presentationOrder = randperm(2); % which are we changing? 1 indicates the given ratio value; 2 indicates the one changing in response to threshold
         Screen('FillRect', windowPtr, lightGrey);
-        if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar' 
+        if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar'
             
             % get the rectangle data
             [refRect, refHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels]);
@@ -322,7 +323,7 @@ try
         % save data at trial lvl
         saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder)
         
-        % for piloting, save whole .mat file 
+        % for piloting, save whole .mat file
         save(['sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
         
         
@@ -339,13 +340,13 @@ try
             % be saved.
             
         end
-        %% 6) save final experiment level data
-        Screen('FillRect', windowPtr, lightGrey);
-        %endExp = 1;
-        %% end
+        
     end
+    %% 6) save final experiment level data
+    exitText([screenXpixels, screenYpixels], windowPtr)
+    WaitSecs(20)
     sca;
-    % exit
+    
 catch %#ok<*CTCH> In event of error
     % This "catch" section executes in case of an error in the "try"
     % section above.  Importantly, it closes the onscreen windowPtr if it's open.
