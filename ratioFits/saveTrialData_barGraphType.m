@@ -72,15 +72,19 @@ dataIn_BA   = { num2str(subID)     stimType     trialIterator  sameOrDiffTrial  
 
 
 % staircase analysis
-varNames_SA   = { 'testedRatio',       'nRatioPresentations',     'abstractIntensity',       'presentedRatio',       'estimatedThreshold',     'response',          'quantileOrder',        'TTest'};
+varNames_SA   = { 'testedRatio',       'nRatioPresentations',     'abstractIntensity',       'presentedRatioL', 'presentedRatioR',       'estimatedThreshold', 'estThresholdSD',    'response',          'quantileOrder',        'TTest'};
 if strcmpi(sameOrDiffTrial, 'different')
     qu = questObject;
     tTest = QuestQuantile(qu);
-    dataIn_SA ={mat2str(qu.referenceRatio)        qu.trialCount    qu.intensity(qu.trialCount)  mat2str(presentedRatio)    qu.xThreshold     qu.response(qu.trialCount)   qu.quantileOrder       tTest };
+      
+      estThreshold = QuestMean(qu);
+    estThresholdSD = QuestSd(qu);
+    
+    dataIn_SA ={mat2str(qu.referenceRatio)        qu.trialCount    qu.intensity(qu.trialCount)  presentedRatio(1) presentedRatio(2)         estThreshold   estThresholdSD   qu.response(qu.trialCount)   qu.quantileOrder       tTest };
 else % qu object will not be updated on 'same' trials. Just save some blank values to hold place
-    dataIn_SA ={mat2str(ratioArrayOpts(ratioArrayIdx,:)) NaN                NaN     mat2str(ratioArrayOpts(ratioArrayIdx,:))    NaN                 trialAcc             NaN                     NaN  };
+    dataIn_SA ={mat2str(ratioArrayOpts(ratioArrayIdx,:)) NaN            NaN     ratioArrayOpts(ratioArrayIdx,1) ratioArrayOpts(ratioArrayIdx,1)   NaN           NaN                trialAcc                   NaN                NaN  };
 end
-varTypes_SA   = [    '%s\t                            %d\t              %3.6f\t                    %s\t                    %3.6f\t                %u\t                %1.6f\t                %1.6f\t  '  ];
+varTypes_SA   = [    '%s\t                            %d\t              %3.6f\t                    %3.6f\t          %3.6f\t                    %3.6f\t          %3.6f\t             %u\t                      %1.6f\t            %1.6f\t  '  ];
 
 % reproducible trial DEtails
 varNames_DE   = { 'StimLeftBarLeft', 'StimLeftBarTop', 'StimLeftBarRight', 'StimLeftBarBottom', 'StimRightBarTop', 'StimRightBarLeft', 'StimRightBarBottom', 'StimRightBarRight', 'refStimOrder'} ;
