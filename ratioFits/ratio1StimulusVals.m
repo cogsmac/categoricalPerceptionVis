@@ -41,7 +41,7 @@ function [stimRect1, stimRect2] = ratio1StimulusVals(...
 
 
      rectWidth = screenSize(1)/18;
-fullRectHeight = screenSize(2)/4; % so 100% of the ratio is 1/4 the screen
+fullRectHeight = screenSize(2)/5; % so 100% of the ratio is 1/5 the screen
 
 % determine heights of bars
 heightBar1 = presentedRatio(1)*fullRectHeight;
@@ -63,18 +63,17 @@ x1Bar2 = posCenters(positionIdx, 1)+.5*(rectWidth);
 x2Bar2 = x1Bar2 + rectWidth;
 
 if presentedRatio(1)==1 % if the left bar is larger
-    y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower is higher on screen
+    y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
     y2Bar1 = y1Bar1 + heightBar1;
     
     y1Bar2 = y2Bar1 - heightBar2; % not quite as tall as bar 1
     y2Bar2 = y2Bar1; % positions along aligned scale -- bottoms line up.
 else
-    y1Bar2 = posCenters(positionIdx, 2)-.5*(heightBar2); % lower is higher on screen
-    y2Bar2 = y1Bar2 + heightBar2;
+    y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1);
+    y2Bar1 = y1Bar1 + heightBar1; 
     
-    y1Bar1 = y1Bar2 - heightBar2; % not quite as tall as bar 1
-    y2Bar1 = y2Bar2; % positions along aligned scale -- bottoms line up.
-    
+    y1Bar2 = y1Bar1; % positions along aligned scale -- bottoms line up.
+    y2Bar2 = y1Bar2 + heightBar2; % not quite as tall as bar 2
 end
 
 stimRect1 = [x1Bar1, y1Bar1, x2Bar1, y2Bar1];
