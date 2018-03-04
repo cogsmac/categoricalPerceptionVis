@@ -38,7 +38,11 @@ sca;
 close all;
 clearvars;
 
-subID = 007;
+debugMode = 1;
+
+if debugMode
+    subID = 07;
+end
 
 % Basic experiment parameters
 nMinutes = 1; % maximum duration
@@ -65,7 +69,7 @@ black = BlackIndex(screenNumber);
 lightGrey = [.75 .75 .75];
 
 % Open an on screen window
-[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey, [1 1 900 500]);
+[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey, [1 1 1200 750]);
 
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', windowPtr);
@@ -109,9 +113,9 @@ ratioArrayOpts = [
 isReferenceBar = ratioArrayOpts == 1;
 
 % staircase settings
-randJitter = rand(length(ratioArrayOpts),2)/100; % very little bit of noise. Essentially impossible to start.
-randJitter(isReferenceBar==1)=0;
-presentedRatio = ratioArrayOpts+randJitter; % will update with multiple trials
+%randJitter = rand(length(ratioArrayOpts),2)/100; % very little bit of noise. Essentially impossible to start.
+%randJitter(isReferenceBar==1)=0;
+presentedRatio = ratioArrayOpts;%+randJitter; % will update with multiple trials
 
 % what type of stimulus are we doing the same/different task with?
 stimType = 'barGraphType';
@@ -156,10 +160,10 @@ try
         % Horizontally and vertically centered:
         [nx, ny, bbox] = DrawFormattedText(windowPtr, fixationCross, 'center', 'center', 0);
         
-
+        
         % Flip to the screen (wait just three frames)
         fixationOnset = Screen('Flip', windowPtr, trialOnset + 3 * ifi);
-
+        
         WaitSecs(.050)
         % set up trial [TODO: make sure each variable here is logged]
         ratioArrayIdx = randi([1 10],1,1); % which ratio difference (how different is each bar)?
@@ -174,18 +178,30 @@ try
         
         if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar' for
             
-            % the thresholded, comparison; one will always be 1, one will
-            % be some proportion
-            bar1Val = presentedRatio(ratioArrayIdx,1); % first bar, redundantly save data
-            bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
+            
             
             % get the rectangle data
-            refRect=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels]);
-            if strcmpi('same', sameOrDiffTitle)
+   [refRect, refHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels]);
+            if strcmpi('same', sameOrDiffTrial)
+                % the thresholded, comparison; one will always be 1, one will
+                % be some proportion
+                bar1Val = ratioArrayOpts(ratioArrayIdx,1); % first bar, redundantly save data
+                bar2Val = ratioArrayOpts(ratioArrayIdx,2); % second bar
                 stimRect = refRect;
+                
             else
-                stimRect = barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
+                % the thresholded, comparison; one will always be 1, one will
+                % be some proportion
+                bar1Val = presentedRatio(ratioArrayIdx,1); % first bar, redundantly save data
+                bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
+   [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
             end
+            
+        end
+        
+        if debugMode
+            display([bar1Val bar2Val])
+            [nx, ny, bbox] = DrawFormattedText(windowPtr, num2str(trialIterator), 'center', 'center', 0);
             
         end
         
@@ -201,7 +217,10 @@ try
         % push to screen. note vbl is stimulus one onset time and marks removal of fixation cross.
         % fixation cross is on screen 1/4 the duration of the stimuli.
         stimulus1Onset = Screen('Flip', windowPtr, fixationOnset + (waitframes - 0.5) * ifi);
-                
+        
+        if debugMode
+            display(refHeights)
+        end
         % present the second item
         if presentationOrder(2) == 2
             % second stimulus is the manipulated, psychophysical one
@@ -211,13 +230,16 @@ try
             Screen('FillRect', windowPtr, lightGrey/2, refRect);
         end
         
+        if debugMode
+%            display(rectHeights)
+            sameOrDiffCorr
+        end
+        
         % ... wait for waitframes to pass and flip the second stimulus
-        %WaitSecs(.5) % TODO use a proper timing method via Peter Scafe PTB demo
         stimulus2Onset = Screen('Flip', windowPtr, stimulus1Onset + (waitframes - 0.5) * ifi);
         
         % ... wait for waitframes to pass and flip the response prompt
         responsePrompt([screenXpixels, screenYpixels], windowPtr)
-        %WaitSecs(.5)
         
         %% 3) get response
         trialAcc = NaN; % set to 1 if they're right; 0 if they're wrong. Leave NaN for missed response.
@@ -236,7 +258,7 @@ try
         end
         responseTime = toc(responseOnset);
         
-       % clc; % clear command window, removing any typedjf characters
+        % clc; % clear command window, removing any typed characters
         
         
         if strcmpi(sameOrDiffCorr, recordedAnswer)
@@ -251,8 +273,8 @@ try
             Screen('FillRect', windowPtr, [255 0 0]);
         end
         
-        % feedback is a flash 1/4 the duration of stimulus presentation
-        feedbackOnset = Screen('Flip', windowPtr, promptOnset + (waitframes/4 - 0.5) * ifi);
+        % feedback is a flash 1/8 the duration of stimulus presentation
+        feedbackOnset = Screen('Flip', windowPtr, secs + (waitframes/8 - 0.5) * ifi);
         
         %% 4) adjust staircase
         if strcmpi('different', sameOrDiffTrial)
@@ -261,7 +283,7 @@ try
             qu.(ratioArrayIdx)=QuestUpdate(qu.(ratioArrayIdx),tTest,trialAcc); % Add the new datum (actual test intensity and observer response) to the database.
             
             % output of the QuestUpdate to inform the stimulus presentation.
-            presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx))=presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx)) + ...
+            presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:))=presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) + ...
                 qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount);
         end
         %% 5) check thresholds
@@ -273,22 +295,21 @@ try
         
         % escape if time is up or accuracy is as good as it can be
         
-        % save data [TO DO]
-        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayIdx, qu.(ratioArrayIdx), presentedRatio(ratioArrayIdx,:))
-        display(presentedRatio(ratioArrayIdx))
+        % save data at trial lvl
+        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), presentedRatio(ratioArrayIdx,:), stimRect, refRect, presentationOrder)
         
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
-        
             
-        % take a break
-        blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime)    
-        
             
-        % save trial data to external file at the end of every block in
-        % case of crash. The full external dataset will be saved together using
-        % cbind after the experiment is finished; the .mat file will also
-        % be saved. 
-        
+            % take a break
+            blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime)
+            
+            
+            % save trial data to external file at the end of every block in
+            % case of crash. The full external dataset will be saved together using
+            % cbind after the experiment is finished; the .mat file will also
+            % be saved.
+            
         end
         %% 6) save final experiment level data
         Screen('FillRect', windowPtr, lightGrey);
