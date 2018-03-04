@@ -4,7 +4,7 @@
 %  Date Created: February 27 2018
 %  Last Edit: [Last Time of Edit]
 %
-function rectangleData=barGraphType(ratioValues, position, screenDimensions)
+function [rectangleData heightData]=barGraphType(ratioValues, position, screenDimensions)
 %
 %  Visual Thinking Lab, Northwestern University
 %  Originally Created For: ratio1
@@ -23,6 +23,7 @@ function rectangleData=barGraphType(ratioValues, position, screenDimensions)
 
 % call function to get stimulus size, position, properties of
 % the changing, thresholded stimlus
-[rectangleData1, rectangleData2] = ratio1StimulusVals(ratioValues, {'position', position}, screenDimensions);
+[rectangleData1, rectangleData2, height1, height2] = ratio1StimulusVals(ratioValues, {'position', position}, screenDimensions);
 
 rectangleData = [rectangleData1', rectangleData2'];
+heightData = [height1 height2];
