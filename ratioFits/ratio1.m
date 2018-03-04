@@ -14,9 +14,9 @@ function ratio1(subID)
 %  Reviewed: []
 %  Verified: []
 %
-%  INPUT: [Insert Function Inputs here (if any)]
+%  INPUT: subID, integer; the identifer for this participant
 %
-%  OUTPUT: [Insert Outputs of this script]
+%  OUTPUT: saves .mat & .txt files to current directory
 %
 %  Additional Comments:
 %       Broadly, the workflow is
@@ -38,18 +38,17 @@ function ratio1(subID)
 % Clear the workspace and the screen
 sca;
 close all;
-clearvars;
 
-debugMode = 0;
+debugMode = 0; % toggle to 1 for development
 
 if debugMode
-subID = 1    
+    subID = 1
 end
 
 
 % Basic experiment parameters
 nMinutes = 20; % maximum duration
-trialPerBlock = 120;
+trialPerBlock = 100;
 
 experimentOpenTime = tic; testIfTimeUp = 0;
 
@@ -73,8 +72,8 @@ black = BlackIndex(screenNumber);
 lightGrey = [.75 .75 .75];
 
 % Open an on screen window
-[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey)%, [1 1 1200 750]);
-
+[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey);%, [1 1 1200 750]);
+Screen('Resolution', windowPtr);
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', windowPtr);
 
@@ -98,7 +97,7 @@ Priority(topPriorityLevel);
 flipSecs = .75;
 waitframes = round(flipSecs / ifi);
 
-
+HideCursor()
 % which ratios are we testing?
 ratioArrayOpts = [
     .50, 1;
@@ -110,7 +109,7 @@ ratioArrayOpts = [
     % 1, .55;
     1, .60;
     % 1, .45;
-    1, .40]; %one staircase for each of these
+    1, .40]; %one staircase for each of these; n = 6 for 20 mins exp
 
 % which are we comparing to? (What doesn't change in psychophysical
 % function trials)?
@@ -164,7 +163,6 @@ try
         
         
         % Flip to the screen (wait just three frames)
-        
         fixationOnset = Screen('Flip', windowPtr, trialOnset + 3 * ifi);
         
         WaitSecs(.020)
@@ -273,9 +271,6 @@ try
         end
         responseTime = toc(responseOnset);
         
-        % clc; % clear command window, removing any typed characters
-        
-        
         if strcmpi(sameOrDiffCorr, recordedAnswer)
             trialAcc = 1;
             
@@ -298,16 +293,6 @@ try
             % Update the pdf
             qu.(ratioArrayIdx)=QuestUpdate(qu.(ratioArrayIdx),tTest,trialAcc); % Add the new datum (actual test intensity and observer response) to the database.
             
-            % output of the QuestUpdate to inform the stimulus presentation.
-            % if it's negative, we'll need an absolute value for the log
-            % transformation
-            %{
-            if qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)<=0
-                presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:))=presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) - ...
-                    log(abs(qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)));
-            %}
-            %updatedRatioVal = questUpdateRatio(qu, ratioArrayIdx);
-            %presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) = updatedRatioVal;
         end
         %% 5) check thresholds
         
@@ -332,12 +317,6 @@ try
             remainingTime = round(nMinutes - testIfTimeUp/60);
             % take a break
             blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime)
-            
-            
-            % save trial data to external file at the end of every block in
-            % case of crash. The full external dataset will be saved together using
-            % cbind after the experiment is finished; the .mat file will also
-            % be saved.
             
         end
         
