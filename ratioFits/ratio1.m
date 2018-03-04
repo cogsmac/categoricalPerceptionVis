@@ -38,15 +38,16 @@ sca;
 close all;
 clearvars;
 
-debugMode = 1;
+debugMode = 0;
 
 if debugMode
-    subID = 07;
+    
 end
+subID = 12;
 
 % Basic experiment parameters
-nMinutes = 1; % maximum duration
-trialPerBlock = 200;
+nMinutes = 10; % maximum duration
+trialPerBlock = 120;
 
 experimentOpenTime = tic; testIfTimeUp = 0;
 
@@ -95,17 +96,17 @@ flipSecs = .75;
 waitframes = round(flipSecs / ifi);
 
 
-% hard coded for development
+% which ratios are we testing? 
 ratioArrayOpts = [
     .50, 1;
-    .55, 1;
+    %.55, 1;
     .60, 1;
-    .45, 1;
+    %.45, 1;
     .40, 1;
     1, .50;
-    1, .55;
+   % 1, .55;
     1, .60;
-    1, .45;
+   % 1, .45;
     1, .40]; %one staircase for each of these
 
 % which are we comparing to? (What doesn't change in psychophysical
@@ -131,7 +132,7 @@ ret = RestrictKeysForKbCheck([allowedResponses 44]); % also 44 for spacebar
 % set-up intial psychometric values for Quest
 pThreshold=0.82;
 beta=3.5;delta=0.01;gamma=0.5;
-guessThreshold = .1;
+guessThreshold = log(.1);
 guessSD = 3;
 % one fit for each ratio match
 qu=table;
@@ -150,7 +151,7 @@ try
     while ~endExp && (testIfTimeUp < 60*nMinutes)
         
         % clear screen
-        Screen('FillRect', windowPtr, lightGrey*255);
+        Screen('FillRect', windowPtr, lightGrey);
         trialIterator = trialIterator + 1;
         
         trialOnset = Screen('Flip', windowPtr);
@@ -162,39 +163,49 @@ try
         
         
         % Flip to the screen (wait just three frames)
+        Screen('FillRect', windowPtr, lightGrey);
         fixationOnset = Screen('Flip', windowPtr, trialOnset + 3 * ifi);
         
         WaitSecs(.050)
         % set up trial [TODO: make sure each variable here is logged]
-        ratioArrayIdx = randi([1 10],1,1); % which ratio difference (how different is each bar)?
+        ratioArrayIdx = randi([1 length(ratioArrayOpts)],1,1); % which ratio difference (how different is each bar)?
         
-        position = randi([1 9], 1, 2); %  first stimulus is presented in position1
+        position = randi([1 9], 1, 2); %  first stimulus is presented in position(1). 9 possible positions
         
         sameOrDiffRand  = randperm(2);
         sameOrDiffTrial = sameOrDiffTitle{sameOrDiffRand(1)};
         sameOrDiffCorr  = sameOrDiffResp{sameOrDiffRand(1)};
         
         presentationOrder = randperm(2); % which are we changing? 1 indicates the given ratio value; 2 indicates the one changing in response to threshold
-        
-        if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar' for
-            
-            
+        Screen('FillRect', windowPtr, lightGrey);
+        if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar' 
             
             % get the rectangle data
-   [refRect, refHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels]);
+            [refRect, refHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels]);
             if strcmpi('same', sameOrDiffTrial)
                 % the thresholded, comparison; one will always be 1, one will
                 % be some proportion
                 bar1Val = ratioArrayOpts(ratioArrayIdx,1); % first bar, redundantly save data
                 bar2Val = ratioArrayOpts(ratioArrayIdx,2); % second bar
-                stimRect = refRect;
+                
+                % get the same rectangle stimuli as refRect, but different x positions
+                [stimRect, rectHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
                 
             else
+                % get the suggested values from quest object (tTest is log intensity)
+                tTest=QuestQuantile(qu.(ratioArrayIdx));
+                tTest=min(-log(.999),max(log(0.001),tTest)); % constrain to ratio values
+                
+                % convert log value from tTest to linear value for
+                % presentedRatio; add the exp(tTest) to the reference ratio
+                presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) = ...
+                    ratioArrayOpts(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) + exp(tTest);
+                
                 % the thresholded, comparison; one will always be 1, one will
                 % be some proportion
                 bar1Val = presentedRatio(ratioArrayIdx,1); % first bar, redundantly save data
                 bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
-   [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
+                [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
             end
             
         end
@@ -215,8 +226,11 @@ try
         end
         
         % push to screen. note vbl is stimulus one onset time and marks removal of fixation cross.
-        % fixation cross is on screen 1/4 the duration of the stimuli.
         stimulus1Onset = Screen('Flip', windowPtr, fixationOnset + (waitframes - 0.5) * ifi);
+        
+        % blank between stimuli
+        Screen('FillRect', windowPtr, lightGrey);
+        stimulus1Offset = Screen('Flip', windowPtr, stimulus1Onset + (waitframes - 0.5) * ifi);
         
         if debugMode
             display(refHeights)
@@ -231,13 +245,13 @@ try
         end
         
         if debugMode
-%            display(rectHeights)
+            %            display(rectHeights)
             sameOrDiffCorr
         end
-        
+        %Screen('FillRect', windowPtr, lightGrey);
         % ... wait for waitframes to pass and flip the second stimulus
-        stimulus2Onset = Screen('Flip', windowPtr, stimulus1Onset + (waitframes - 0.5) * ifi);
-        
+        stimulus2Onset = Screen('Flip', windowPtr, stimulus1Offset + (waitframes/4 - 0.5) * ifi);
+        Screen('FillRect', windowPtr, lightGrey);
         % ... wait for waitframes to pass and flip the response prompt
         responsePrompt([screenXpixels, screenYpixels], windowPtr)
         
@@ -276,31 +290,45 @@ try
         % feedback is a flash 1/8 the duration of stimulus presentation
         feedbackOnset = Screen('Flip', windowPtr, secs + (waitframes/8 - 0.5) * ifi);
         
+        currentRatio = presentedRatio(ratioArrayIdx,:);
         %% 4) adjust staircase
         if strcmpi('different', sameOrDiffTrial)
-            tTest=QuestQuantile(qu.(ratioArrayIdx));
+            
             % Update the pdf
             qu.(ratioArrayIdx)=QuestUpdate(qu.(ratioArrayIdx),tTest,trialAcc); % Add the new datum (actual test intensity and observer response) to the database.
             
             % output of the QuestUpdate to inform the stimulus presentation.
-            presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:))=presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) + ...
-                qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount);
+            % if it's negative, we'll need an absolute value for the log
+            % transformation
+            %{
+            if qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)<=0
+                presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:))=presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) - ...
+                    log(abs(qu.(ratioArrayIdx).intensity(qu.(ratioArrayIdx).trialCount)));
+            %}
+            %updatedRatioVal = questUpdateRatio(qu, ratioArrayIdx);
+            %presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) = updatedRatioVal;
         end
         %% 5) check thresholds
         
         % temporal threshold
         testIfTimeUp=toc(experimentOpenTime);
-        testIfTimeUp < 60*nMinutes;
+        testIfTimeUp < nMinutes;
+        
         % accuracy threshold [TODO]
         
         % escape if time is up or accuracy is as good as it can be
-        
+        Screen('FillRect', windowPtr, lightGrey);
+        trialEnd = Screen('Flip', windowPtr, feedbackOnset + (waitframes/8 - 0.5) * ifi);
         % save data at trial lvl
-        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), presentedRatio(ratioArrayIdx,:), stimRect, refRect, presentationOrder)
+        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder)
+        
+        % for piloting, save whole .mat file 
+        save(['sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
+        
         
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
             
-            
+            remainingTime = round(nMinutes - testIfTimeUp/60);
             % take a break
             blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime)
             
@@ -316,7 +344,7 @@ try
         %endExp = 1;
         %% end
     end
-    
+    sca;
     % exit
 catch %#ok<*CTCH> In event of error
     % This "catch" section executes in case of an error in the "try"
