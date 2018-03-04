@@ -1,11 +1,11 @@
 %  This function takes stimulus values as input, and draws the bars as
 %  output
 %  
-function [stimRect1, stimRect2] = ratio1StimulusVals(...
-                                  presentedRatio, ...
-                                  irrelevantChange, ...
-                                  screenSize, ...
-                                  positionIdx)
+function [stimRect1, stimRect2, heightBar1, heightBar2] =ratio1StimulusVals(...
+                                               presentedRatio, ...
+                                                irrelevantChange, ...
+                                                  screenSize, ...
+                                                    positionIdx)
 
 %  Author: Caitlyn McColeman
 %  Date Created: Feb 26 2018 
@@ -69,11 +69,11 @@ if presentedRatio(1)==1 % if the left bar is larger
     y1Bar2 = y2Bar1 - heightBar2; % not quite as tall as bar 1
     y2Bar2 = y2Bar1; % positions along aligned scale -- bottoms line up.
 else
-    y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1);
-    y2Bar1 = y1Bar1 + heightBar1; 
+    y1Bar2 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
+    y2Bar2 = y1Bar2 + heightBar2;
     
-    y1Bar2 = y1Bar1; % positions along aligned scale -- bottoms line up.
-    y2Bar2 = y1Bar2 + heightBar2; % not quite as tall as bar 2
+    y1Bar1 = y2Bar2 - heightBar1; % not quite as tall as bar 2
+    y2Bar1 = y2Bar2; % positions along aligned scale -- bottoms line up.
 end
 
 stimRect1 = [x1Bar1, y1Bar1, x2Bar1, y2Bar1];
