@@ -1,22 +1,37 @@
 %  This is the master function for the psychophysical experiment wherein
 %  participants compare the value of two pairs of graphed values. It is a
-%  simple same/different task.
+%  simple same/different task. The value of the stimulus presented for
+%  "different" trials differs based upon user performance. This is a
+%  staircasing design set up to figure out if there are different
+%  perceptual thresholds for different ratio values. 
+%
+%  There are two major conditions in this early version: the 'barGraphType'
+%  where the ratios are always relative to a bar that represents the value
+%  of 1. 
+%
+%  The second condition is mostly a control. Instead of using a ratio, it's
+%  just a single bar. The bars are the same that are used in the
+%  'barGraphType' tasks, but there is NO reference bar, so functionally
+%  participants aren't seeing a ratio. Consider this condition,
+%  'barOnlyType', the control for the experiment.
 %
 function ratio1(subID)
 %
 %  Author: Caitlyn McColeman
 %  Date Created: Feburary 26 2018
-%  Last Edit:
+%  Last Edit: March 4 2018
 %
 %  Visual Thinking Lab, Northwestern University
-%  Originally Created For: [Insert Name of Project]
-%
-%  Reviewed: []
-%  Verified: []
+%  Originally Created For: ratio1
 %
 %  INPUT: subID, integer; the identifer for this participant
 %
-%  OUTPUT: saves .mat & .txt files to current directory
+%  OUTPUT: saves .mat & .txt files to current directory. The .txt file is a
+%            tab delimited file, with one row per trial. It should be
+%            sufficient more most anaylses. In the event that additional
+%            information is required, though, the .mat file from each trial
+%            is saved too so everything that was a variable in
+%            that trial is available if need be. 
 %
 %  Additional Comments:
 %       Broadly, the workflow is
@@ -30,7 +45,11 @@ function ratio1(subID)
 %  Additional Scripts Used:
 %           1) Quest package (distributed via psychtoolbox) TODO: add
 %                   citations
-%           2) ratio1StimulusVals.m
+%           2) ratio1StimulusVals.m, positionRef.m, barGraphType.m
+%           3) saveTrialData_barGraphType.m
+%           4) Quest package 
+%           5) NA
+%           6) saveTrialData_barGraphType.m
 
 
 %% 1) set stimlus values
@@ -42,9 +61,8 @@ close all;
 debugMode = 0; % toggle to 1 for development
 
 if debugMode
-    subID = 1
+    subID = 1; %#ok<UNRCH> % the debug subject ID will overwrite input to avoid errors
 end
-
 
 % Basic experiment parameters
 nMinutes = 22; % maximum duration
@@ -55,8 +73,9 @@ experimentOpenTime = tic; testIfTimeUp = 0;
 % Here we call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
 
-[keyboardIndices, productNames, allInfos] = GetKeyboardIndices;
-kbPointer = keyboardIndices(end);
+% keyboard information
+[keyboardIndices, productNames, allInfos] = GetKeyboardIndices;  %#ok<*ASGLU>
+kbPointer = keyboardIndices(end);  %#ok<*NASGU>
 KbName('UnifyKeyNames');
 
 % Get the screen numbers
@@ -80,12 +99,6 @@ Screen('Resolution', windowPtr);
 % get some details about the presentation size
 positionOptions = positionRef([screenXpixels, screenYpixels]);
 
-% Figure out which keyboard to listen to
-[keyboardIndices, productNames, allInfos] = GetKeyboardIndices;
-kbPointer = keyboardIndices(end);
-% Unify keycode to keyname mapping across operating systems:
-KbName('UnifyKeyNames');
-
 % Measure the vertical refresh rate of the monitor
 ifi = Screen('GetFlipInterval', windowPtr);
 
@@ -97,9 +110,10 @@ Priority(topPriorityLevel);
 flipSecs = .75;
 waitframes = round(flipSecs / ifi);
 
-HideCursor()
+HideCursor() % get rid of mouse cursor 
+
 % which ratios are we testing?
-ratioArrayOpts = [
+ratioArrayOpts = [ % comments indicate values that will be used in exp 2 if warrented
     .50, 1;
     %.55, 1;
     .60, 1;
@@ -181,8 +195,6 @@ try
         % get the rectangle data
         [refRect, refHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         
-        % if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar'
-        
         if strcmpi('same', sameOrDiffTrial)
             % the thresholded, comparison; one will always be 1, one will
             % be some proportion
@@ -208,13 +220,9 @@ try
             bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
             [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         end
-        % else
-        
-        % get the rectangle data
-        % end
         
         if debugMode
-            display([bar1Val bar2Val])
+            display([bar1Val bar2Val]) %#ok<UNRCH>
             [nx, ny, bbox] = DrawFormattedText(windowPtr, num2str(trialIterator), 'center', 'center', 0);
             
         end
@@ -236,7 +244,7 @@ try
         stimulus1Offset = Screen('Flip', windowPtr, stimulus1Onset + (waitframes - 0.5) * ifi);
         
         if debugMode
-            display(refHeights)
+            display(refHeights) %#ok<UNRCH>
         end
         % present the second item
         if presentationOrder(2) == 2
@@ -248,10 +256,9 @@ try
         end
         
         if debugMode
-            %            display(rectHeights)
-            sameOrDiffCorr
+            sameOrDiffCorr %#ok<UNRCH>
         end
-        %Screen('FillRect', windowPtr, lightGrey);
+        
         % ... wait for waitframes to pass and flip the second stimulus
         stimulus2Onset = Screen('Flip', windowPtr, stimulus1Offset + (waitframes/4 - 0.5) * ifi);
         Screen('FillRect', windowPtr, lightGrey);
@@ -302,9 +309,7 @@ try
         
         % temporal threshold
         testIfTimeUp=toc(experimentOpenTime);
-        testIfTimeUp < nMinutes;
-        
-        % accuracy threshold [TODO]
+        testIfTimeUp < nMinutes; %#ok<VUNUS>
         
         % escape if time is up or accuracy is as good as it can be
         Screen('FillRect', windowPtr, lightGrey);
