@@ -43,6 +43,7 @@ dTableShaped <- rbindlist(fullDataSet)
 setkey(dTableShaped , participantID, trialID)
 dTableShaped[ is.na(dTableShaped) ] <- NA # replace MATLAB NaN with R-friendly NA 
 
+# visualize the development of the final estimated values by trial 
 ggplot(dTableShaped, aes(x=trialID, y=estimatedThreshold, colour=testedRatio)) + 
   geom_errorbar(aes(ymin=estimatedThreshold-estThresholdSD, ymax=estimatedThreshold+estThresholdSD), width=.1) +
   geom_point() + 
