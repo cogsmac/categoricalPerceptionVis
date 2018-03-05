@@ -129,5 +129,5 @@ statsAndGraphs <- function(stimulusSubset){
 
 
 # call that function
-barGraphOut = statsAndGraphs(barGraph)
- barOnlyOut = statsAndGraphs(barOnly)
+barGraphAllOut = statsAndGraphs(barGraph)
+ barOnlyAllOut = statsAndGraphs(barOnly)
