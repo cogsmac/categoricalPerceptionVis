@@ -31,7 +31,7 @@ library(data.table)
 library(ggplot2)
 
 currDir = dirname(sys.frame(1)$ofile) # remember where we came from so we can save plots to the appropriate spot
-setwd('../../ratioFits_Data') 
+#setwd('../../ratioFits_Data') 
 
 # get names of files
 all.files <- list.files(pattern = "trialLvl.txt")
@@ -43,9 +43,18 @@ dTableShaped <- rbindlist(fullDataSet)
 setkey(dTableShaped , participantID, trialID)
 dTableShaped[ is.na(dTableShaped) ] <- NA # replace MATLAB NaN with R-friendly NA 
 
+# split the data up into task type by the time task type is available 
+tasksIn = unique(dTableShaped$comparisonTask)
+barGraph = dTableShaped[dTableShaped$comparisonTask == tasksIn[1],]
+ barOnly = dTableShaped[dTableShaped$comparisonTask == tasksIn[2],]
+
 # visualize the development of the final estimated values by trial 
-ggplot(dTableShaped, aes(x=trialID, y=estimatedThreshold, colour=testedRatio)) + 
-  geom_errorbar(aes(ymin=estimatedThreshold-estThresholdSD, ymax=estimatedThreshold+estThresholdSD), width=.1) +
-  geom_point() + 
-  facet_wrap(~testedRatio, nrow = 6)
+ggplot(barGraph, aes(x=trialID, y=estimatedThreshold, colour=participantID)) + 
+  geom_errorbar(aes(ymin=estimatedThreshold-estThresholdSD, ymax=estimatedThreshold+estThresholdSD), width=.1, alpha = .3) +
+  geom_point(size = .5, alpha = .5) + 
+  facet_wrap(~testedRatio, nrow = 6) +
+  theme_light() + 
+  theme(panel.grid.minor = element_blank(),
+        strip.background = element_rect(colour="grey", fill="#E0E0E0"),
+        panel.border = element_rect(colour = "black")) # leave facet titles for my pre-decision; make another version and label w graphs
 
