@@ -47,7 +47,7 @@ end
 
 
 % Basic experiment parameters
-nMinutes = 1; % maximum duration
+nMinutes = 22; % maximum duration
 trialPerBlock = 100;
 
 experimentOpenTime = tic; testIfTimeUp = 0;
