@@ -47,7 +47,7 @@ end
 
 
 % Basic experiment parameters
-nMinutes = 20; % maximum duration
+nMinutes = 1; % maximum duration
 trialPerBlock = 100;
 
 experimentOpenTime = tic; testIfTimeUp = 0;
@@ -118,7 +118,8 @@ isReferenceBar = ratioArrayOpts == 1;
 presentedRatio = ratioArrayOpts; % initialize
 
 % what type of stimulus are we doing the same/different task with?
-stimType = 'barGraphType';
+%stimType = 'barGraphType';
+stimType = 'barOnlyType';
 
 % preparing logging variables
 sameOrDiffTitle = {'same', 'different'};
@@ -177,37 +178,40 @@ try
         
         presentationOrder = randperm(2); % which are we changing? 1 indicates the given ratio value; 2 indicates the one changing in response to threshold
         Screen('FillRect', windowPtr, lightGrey);
-        if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar'
+        % get the rectangle data
+        [refRect, refHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
+        
+        % if strcmpi(stimType,'barGraphType') % could be 'barGraphType' or 'singleBar'
+        
+        if strcmpi('same', sameOrDiffTrial)
+            % the thresholded, comparison; one will always be 1, one will
+            % be some proportion
+            bar1Val = ratioArrayOpts(ratioArrayIdx,1); % first bar, redundantly save data
+            bar2Val = ratioArrayOpts(ratioArrayIdx,2); % second bar
             
-            % get the rectangle data
-            [refRect, refHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels]);
-            if strcmpi('same', sameOrDiffTrial)
-                % the thresholded, comparison; one will always be 1, one will
-                % be some proportion
-                bar1Val = ratioArrayOpts(ratioArrayIdx,1); % first bar, redundantly save data
-                bar2Val = ratioArrayOpts(ratioArrayIdx,2); % second bar
-                
-                % get the same rectangle stimuli as refRect, but different x positions
-                [stimRect, rectHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
-                
-            else
-                % get the suggested values from quest object (tTest is log intensity)
-                tTest=QuestQuantile(qu.(ratioArrayIdx));
-                tTest=min(-log(.999),max(log(0.001),tTest)); % constrain to ratio values
-                
-                % convert log value from tTest to linear value for
-                % presentedRatio; add the exp(tTest) to the reference ratio
-                presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) = ...
-                    ratioArrayOpts(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) + exp(tTest);
-                
-                % the thresholded, comparison; one will always be 1, one will
-                % be some proportion
-                bar1Val = presentedRatio(ratioArrayIdx,1); % first bar, redundantly save data
-                bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
-                [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels]);
-            end
+            % get the same rectangle stimuli as refRect, but different x positions
+            [stimRect, stimHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
             
+        else
+            % get the suggested values from quest object (tTest is log intensity)
+            tTest=QuestQuantile(qu.(ratioArrayIdx));
+            tTest=min(-log(.999),max(log(0.001),tTest)); % constrain to ratio values
+            
+            % convert log value from tTest to linear value for
+            % presentedRatio; add the exp(tTest) to the reference ratio
+            presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) = ...
+                ratioArrayOpts(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) + exp(tTest);
+            
+            % the thresholded, comparison; one will always be 1, one will
+            % be some proportion
+            bar1Val = presentedRatio(ratioArrayIdx,1); % first bar, redundantly save data
+            bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
+            [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         end
+        % else
+        
+        % get the rectangle data
+        % end
         
         if debugMode
             display([bar1Val bar2Val])
@@ -305,13 +309,14 @@ try
         % escape if time is up or accuracy is as good as it can be
         Screen('FillRect', windowPtr, lightGrey);
         trialEnd = Screen('Flip', windowPtr, feedbackOnset + (waitframes/8 - 0.5) * ifi);
+        
         % save data at trial lvl
         saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder)
         
         % for piloting, save whole .mat file
         save(['sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
         
-        
+        % check if it's time for a block break
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
             
             remainingTime = round(nMinutes - testIfTimeUp/60);
