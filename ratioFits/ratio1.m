@@ -118,8 +118,8 @@ isReferenceBar = ratioArrayOpts == 1;
 presentedRatio = ratioArrayOpts; % initialize
 
 % what type of stimulus are we doing the same/different task with?
-%stimType = 'barGraphType';
-stimType = 'barOnlyType';
+possibleStimTypes = {'barGraphType', 'barOnlyType'}; condChooser = randperm(2);
+stimType = possibleStimTypes{condChooser(1)};
 
 % preparing logging variables
 sameOrDiffTitle = {'same', 'different'};
@@ -167,7 +167,7 @@ try
         fixationOnset = Screen('Flip', windowPtr, trialOnset + 3 * ifi);
         
         WaitSecs(.020)
-        % set up trial [TODO: make sure each variable here is logged]
+        % set up trial 
         ratioArrayIdx = randi([1 length(ratioArrayOpts)],1,1); % which ratio difference (how different is each bar)?
         
         position = randi([1 9], 1, 2); %  first stimulus is presented in position(1). 9 possible positions
