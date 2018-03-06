@@ -54,24 +54,16 @@ sigDetectionPrep <- function(dataIn){
   # proportion of false alarms for same trials
   FAPropSame = 1 - mean(sameSubset$response) # if they're wrong it's because they said two matching stimuli were different when they were actually the same [false alarm]
 
-  # TODO: subset by proportion tested
-  
-  
   # output hits, misses, false alarms, and correct rejections 
   list(hit = hitPropDiff, miss = 1-hitPropDiff, falseAlarm = FAPropSame, corrRejection = hitPropSame)
   
-  
 }
-
-
-## function to visualize signal detection matrices
-
 
 # use the function to get the signal detection data for the different datasets 
 barGraphSigDetDat = sigDetectionPrep(barGraph)
  barOnlySigDetDat = sigDetectionPrep(barOnly)
   
-## visualize in a typical signal detection matrix
+ ## function to visualize signal detection matrices
  viewSigDetection <- function(sigDetDat){
    
    horizontalLabels = c("detection","rejection")
@@ -92,17 +84,54 @@ barGraphSigDetDat = sigDetectionPrep(barGraph)
    
    # round values for presentation
    presMat = round(sigDetMat,2)
-
-  ll <- seekViewport("plot_01.panel.1.1.vp") # get the panel view
-  grid.text(toString(presMat[1,1]), x = unit(.25, "npc"), y = unit(.75,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "black")) # top left
-  grid.text(toString(presMat[1,2]), x = unit(.75, "npc"), y = unit(.75,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "grey")) # top right
-  grid.text(toString(presMat[2,1]), x = unit(.25, "npc"), y = unit(.25,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "grey")) # bottom left
-  grid.text(toString(presMat[2,2]), x = unit(.75, "npc"), y = unit(.25,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "black")) # bottom right
-
+   
+   ll <- seekViewport("plot_01.panel.1.1.vp") # get the panel view
+   grid.text(toString(presMat[1,1]), x = unit(.25, "npc"), y = unit(.75,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "black")) # top left
+   grid.text(toString(presMat[1,2]), x = unit(.75, "npc"), y = unit(.75,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "grey")) # top right
+   grid.text(toString(presMat[2,1]), x = unit(.25, "npc"), y = unit(.25,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "grey")) # bottom left
+   grid.text(toString(presMat[2,2]), x = unit(.75, "npc"), y = unit(.25,"npc"), just = c("center", "center"), gp = gpar(cex=1.6, col = "black")) # bottom right
+   
    # TODO: subset by proportion tested
    list(a, b)
  }
  
- # use the function to draw signal detection matrices
+# use the function to draw signal detection matrices: aggregates 
  graphBarList = viewSigDetection(barGraphSigDetDat)
   barOnlyList = viewSigDetection(barGraphSigDetDat)
+  
+# subset data further into different tested ratios 
+referenceRatioOpts = unique(barGraph$testedRatio)
+
+barGraphByRef=list() 
+ barOnlyByRef=list()
+ 
+ 
+ sigDetDatNames <- c('referenceValue', 'hits', 'misses', 'falseAlarm', 'correctReject')
+ 
+ barGSig_formatted = data.frame() #initialize storage frames
+ barOSig_formatted = data.frame()
+ 
+ for (i in 1:length(referenceRatioOpts)){
+   barGraphByRef= barGraph[barGraph$testedRatio == referenceValues[i],] # take a subset of trials matching only this tested ratio
+   barOnlyByRef =   barOnly[barOnly$testedRatio == referenceValues[i],] # take a subset of trials matching only this tested ratio
+   
+   # get hits, misses, false alarms and correct rejections
+   barGSig_unformatted = sigDetectionPrep(barGraphByRef)
+   barOSig_unformatted = sigDetectionPrep(barOnlyByRef)
+   
+   # build the figure
+   graphBarVis = viewSigDetection(barGSig_unformatted)
+   barOnlyVis = viewSigDetection(barOSig_unformatted)
+   
+   # shape signal detection data for output and append to exportable dataframe
+   barGSig_formatted = rbind(barGSig_formatted, c(barGSig_unformatted$hit, barGSig_unformatted$miss, barGSig_unformatted$falseAlarm, barGSig_unformatted$corrRejection))
+   barOSig_formatted = rbind(barOSig_formatted, c(barOSig_unformatted$hit, barOSig_unformatted$miss, barOSig_unformatted$falseAlarm, barOSig_unformatted$corrRejection))
+   
+   rm(barGraphByRef, barOnlyByRef) # clear variables to avoid overwriting errors
+ }
+ 
+ barGSig_formatted = cbind(referenceValues, barGSig_formatted) # add reference values factor 
+ barOSig_formatted = cbind(referenceValues, barOSig_formatted) # add reference values factor 
+ 
+ names(barGSig_formatted) = sigDetDatNames # name columns in data frame to improve interpretability 
+ names(barOSig_formatted) = sigDetDatNames
