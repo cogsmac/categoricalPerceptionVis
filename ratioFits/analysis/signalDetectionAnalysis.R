@@ -20,6 +20,7 @@
 library(data.table)
 library(psyphy)
 library(lattice)
+library(ggplot2)
 
 ## organize data
 # get names of files
@@ -135,3 +136,15 @@ barGraphByRef=list()
  
  names(barGSig_formatted) = sigDetDatNames # name columns in data frame to improve interpretability 
  names(barOSig_formatted) = sigDetDatNames
+ 
+
+ # melt the data frame for plotting
+ data.m.barGraph <- melt(barGSig_formatted, id.vars='referenceValue')
+ data.m.barOnly <- melt(barOSig_formatted, id.vars='referenceValue')
+ 
+ # plot everything
+ barGraphCompare = ggplot(data.m.barGraph, aes(fill=variable, y=value, x=referenceValue)) +
+   geom_bar(position="dodge", stat="identity")
+ 
+ barOnlyCompare = ggplot(data.m.barOnly, aes(fill=variable, y=value, x=referenceValue)) +
+   geom_bar(position="dodge", stat="identity")
