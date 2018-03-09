@@ -8,23 +8,13 @@
 #  Reviewed: []
 #  Verified: []
 #
-#  INPUT: subID, integer; the identifer for this participant
+#  INPUT: 
 #
-#  OUTPUT: saves .mat & .txt files to current directory
+#  OUTPUT: 
 #
 #  Additional Comments:
-#       Broadly, the workflow is
-#           1) set stimulus values
-#           2) present stimuli
-#           3) record accuracy
-#           4) adjust staircase
-#           5) terminate upon meeting threshold/timing out
-#           6) save data
 #
 #  Additional Scripts Used:
-#           1) Quest package (distributed via psychtoolbox) TODO: add
-#                   citations
-#           2) ratio1StimulusVals.m
 
 library(data.table)
 library(ggplot2)
@@ -32,7 +22,7 @@ library(plyr)
 library(ez)
 
 currDir = dirname(sys.frame(1)$ofile) # remember where we came from so we can save plots to the appropriate spot
-#setwd('../../ratioFits_Data') 
+setwd('../ratioFits_Data') 
 
 # get names of files
 all.files <- list.files(pattern = "trialLvl.txt")
@@ -40,6 +30,9 @@ all.files <- list.files(pattern = "trialLvl.txt")
 # load data, organize it into meaningful columns
 fullDataSet <- lapply(all.files, read.table, sep="\t", header = TRUE, fill = TRUE)
 dTableShaped <- rbindlist(fullDataSet)
+
+# the automatic order of the testedRatio doesn't make much sense. Reorder them so comparison is easier. 
+dTableShaped$testedRatio = factor(dTableShaped$testedRatio,levels(dTableShaped$testedRatio)[c(1,4,2,5,3,6)])
 
 setkey(dTableShaped , participantID, trialID)
 dTableShaped[ is.na(dTableShaped) ] <- NA # replace MATLAB NaN with R-friendly NA 
@@ -131,3 +124,33 @@ statsAndGraphs <- function(stimulusSubset){
 # call that function
 barGraphAllOut = statsAndGraphs(barGraph)
  barOnlyAllOut = statsAndGraphs(barOnly)
+ 
+fullSet = rbind(barGraphAllOut$dataIn, barOnlyAllOut$dataIn) # only keep the header once
+fullSet = as.data.frame(fullSet) # coerce to data frame to use its snazzy aggregator 
+
+summaryRatio1 <- aggregate(x = fullSet$estimatedThreshold, 
+                               by = list(testedRatio = fullSet$testedRatio, fullSet$btwnSubCond), 
+                               FUN = mean)
+
+names(summaryRatio1) = c('testedRatio', 'stimulus', 'mean')
+
+standardDevs <-  aggregate(x = fullSet$estThresholdStDev, 
+                           by = list(testedRatio = fullSet$testedRatio, fullSet$btwnSubCond), 
+                           FUN = mean)
+names(standardDevs) = c('testRatioSD', 'stimType', 'SD')
+
+summaryRatio1 <- cbind(summaryRatio1, standardDevs) # add the standard deviations to the data 
+
+conditionsIn  = unique(fullSet$btwnSubCond)
+# plot the data summary
+ratio1Pilot = ggplot() + 
+   geom_point(data = summaryRatio1[summaryRatio1$stimulus== conditionsIn[1],], aes(x=testedRatio, y = mean), size = 5, alpha = .5, colour = "blue") + 
+   geom_point(data = summaryRatio1[summaryRatio1$stimulus== conditionsIn[2],], aes(x=testedRatio, y = mean), size = 5, alpha = .5, colour = "red") + 
+   #geom_errorbar(data = summaryRatio1, aes(x=testedRatio, ymin=mean-SD, ymax=mean+SD), width=1, alpha = .3) +
+   geom_point(data = fullSet[fullSet$btwnSubCond == conditionsIn[1],], aes(x=testedRatio, y = estimatedThreshold), size = 2, alpha = .1, colour = "blue") +
+   geom_point(data = fullSet[fullSet$btwnSubCond == conditionsIn[2],], aes(x=testedRatio, y = estimatedThreshold), size = 2, alpha = .1, colour = "red") +
+   facet_wrap(~stimulus, nrow = 1) +
+   theme_light() + 
+   theme(panel.grid.minor = element_blank(),
+         strip.background = element_rect(colour="grey", fill="#E0E0E0"),
+         panel.border = element_rect(colour = "black")) # leave facet titles for my pre-decision; make another version and label w graphs
