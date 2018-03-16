@@ -37,6 +37,7 @@ dTableShaped$testedRatio = factor(dTableShaped$testedRatio,levels(dTableShaped$t
 setkey(dTableShaped , participantID, trialID)
 dTableShaped[ is.na(dTableShaped) ] <- NA # replace MATLAB NaN with R-friendly NA 
 dTableShaped$participantID<-as.factor(dTableShaped$participantID)
+
 # split the data up into task type by the time task type is available 
 tasksIn = unique(dTableShaped$comparisonTask)
 barGraph = dTableShaped[dTableShaped$comparisonTask == tasksIn[1],]
@@ -111,7 +112,7 @@ statsAndGraphs <- function(stimulusSubset){
     , wid = .(participantID)
     , within = .(testedRatio)
     , x = .(testedRatio)
-    , split = .(testedRatio)
+    , split = .(testedRatio) 
   )
   
   # output anova object
@@ -134,6 +135,8 @@ summaryRatio1 <- aggregate(x = fullSet$estimatedThreshold,
 
 names(summaryRatio1) = c('testedRatio', 'stimulus', 'mean')
 
+summaryRatio1$mean = exp(summaryRatio1$mean)
+
 standardDevs <-  aggregate(x = fullSet$estThresholdStDev, 
                            by = list(testedRatio = fullSet$testedRatio, fullSet$btwnSubCond), 
                            FUN = mean)
@@ -142,13 +145,14 @@ names(standardDevs) = c('testRatioSD', 'stimType', 'SD')
 summaryRatio1 <- cbind(summaryRatio1, standardDevs) # add the standard deviations to the data 
 
 conditionsIn  = unique(fullSet$btwnSubCond)
+
 # plot the data summary
 ratio1Pilot = ggplot() + 
    geom_point(data = summaryRatio1[summaryRatio1$stimulus== conditionsIn[1],], aes(x=testedRatio, y = mean), size = 5, alpha = .5, colour = "blue") + 
    geom_point(data = summaryRatio1[summaryRatio1$stimulus== conditionsIn[2],], aes(x=testedRatio, y = mean), size = 5, alpha = .5, colour = "red") + 
    #geom_errorbar(data = summaryRatio1, aes(x=testedRatio, ymin=mean-SD, ymax=mean+SD), width=1, alpha = .3) +
-   geom_point(data = fullSet[fullSet$btwnSubCond == conditionsIn[1],], aes(x=testedRatio, y = estimatedThreshold), size = 2, alpha = .1, colour = "blue") +
-   geom_point(data = fullSet[fullSet$btwnSubCond == conditionsIn[2],], aes(x=testedRatio, y = estimatedThreshold), size = 2, alpha = .1, colour = "red") +
+   geom_point(data = fullSet[fullSet$btwnSubCond == conditionsIn[1],], aes(x=testedRatio, y = exp(estimatedThreshold)), size = 2, alpha = .1, colour = "blue") +
+   geom_point(data = fullSet[fullSet$btwnSubCond == conditionsIn[2],], aes(x=testedRatio, y = exp(estimatedThreshold)), size = 2, alpha = .1, colour = "red") +
    facet_wrap(~stimulus, nrow = 1) +
    theme_light() + 
    theme(panel.grid.minor = element_blank(),
