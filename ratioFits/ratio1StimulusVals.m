@@ -11,7 +11,7 @@ function [stimRect1, stimRect2, heightBar1, heightBar2] =ratio1StimulusVals(...
 
 %  Author: Caitlyn McColeman
 %  Date Created: Feb 26 2018
-%  Last Edit: [Last Time of Edit]
+%  Last Edit:  March 16 2018 
 %
 %  Visual Thinking Laboratory, Northwestern University
 %  Originally Created For: ratio psychophysics experiment
@@ -39,14 +39,16 @@ function [stimRect1, stimRect2, heightBar1, heightBar2] =ratio1StimulusVals(...
 %       uses position information hard coded in positionRef.m
 %
 %  Additional Comments:
-%       default size for a full-size bar is 1/4 of the screen height, 1/16 its width.
+%      - default size for a full-size bar is 1/4 of the screen height, 1/16 its width.
+%      - added a third condition for ratio2 so we can reuse this code. This
+%        is for the stacked bar graph.
 
 
 rectWidth = screenSize(1)/18;
 fullRectHeight = screenSize(2)/5; % so 100% of the ratio is 1/5 the screen
 
 % determine heights of bars
-if strcmpi(stimType, 'barGraphType')
+if strcmpi(stimType, 'barGraphType') | strcmpi(stimType, 'stackedType')
     heightBar1 = presentedRatio(1)*fullRectHeight;
     heightBar2 = presentedRatio(2)*fullRectHeight;
 elseif strcmpi(stimType, 'barOnlyType')
@@ -70,16 +72,21 @@ if strcmpi(stimType, 'barGraphType')
     
     x1Bar2 = posCenters(positionIdx, 1)+.5*(rectWidth);
     x2Bar2 = x1Bar2 + rectWidth;
-elseif strcmpi(stimType, 'barOnlyType')
+elseif strcmpi(stimType, 'barOnlyType') 
     x1Bar1 = posCenters(positionIdx, 1)-.5*(rectWidth);
     x2Bar1 = x1Bar1 + rectWidth;
     
     x1Bar2 = NaN; x2Bar2 = NaN;
+elseif strcmpi(stimType, 'stackedType')
+    x1Bar1 = posCenters(positionIdx, 1)-.5*(rectWidth);
+    x2Bar1 = x1Bar1 + rectWidth;
+    
+    x1Bar2 = x1Bar1; x2Bar2 = x2Bar1;
 end
 if presentedRatio(1)==1 % if the left bar is larger
     y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
     y2Bar1 = y1Bar1 + heightBar1;
-    if strcmpi(stimType, 'barGraphType')
+    if strcmpi(stimType, 'barGraphType') | strcmpi(stimType, 'stackedType')
         y1Bar2 = y2Bar1 - heightBar2; % not quite as tall as bar 1
         y2Bar2 = y2Bar1; % positions along aligned scale -- bottoms line up.
     else
@@ -87,7 +94,7 @@ if presentedRatio(1)==1 % if the left bar is larger
         y2Bar2 = NaN;
     end
 else
-    if strcmpi(stimType, 'barGraphType')
+    if strcmpi(stimType, 'barGraphType') | strcmpi(stimType, 'stackedType')
         y1Bar2 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
         y2Bar2 = y1Bar2 + heightBar2;
         
