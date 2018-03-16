@@ -19,7 +19,7 @@
 function ratio2(subID)
 %
 %  Author: Caitlyn McColeman
-%  Date Created: Feburary 26 2018
+%  Date Created: March 16 2018
 %  Last Edit: 
 %
 %  Visual Thinking Lab, Northwestern University
@@ -66,7 +66,7 @@ if debugMode
 end
 
 % Basic experiment parameters
-nMinutes = 22; % maximum duration
+nMinutes = 50; % maximum duration
 trialPerBlock = 100;
 
 experimentOpenTime = tic; testIfTimeUp = 0;
@@ -162,7 +162,7 @@ try
     trialIterator = 0; % count how many trials we've done
     %% 2) stimulus presentation
     while ~endExp && (testIfTimeUp < 60*nMinutes)
-        
+         
         % clear screen
         Screen('FillRect', windowPtr, lightGrey);
         trialIterator = trialIterator + 1;
@@ -182,7 +182,7 @@ try
         % set up trial 
         ratioArrayIdx = randi([1 length(ratioArrayOpts)],1,1); % which ratio difference (how different is each bar)?
         
-        position = randi([1 9], 1, 2); %  first stimulus is presented in position(1). 9 possible positions
+        position = datasample(1:9,2,'Replace',false); %  was previously randi; replace so no repeats
         
         sameOrDiffRand  = randperm(2);
         sameOrDiffTrial = sameOrDiffTitle{sameOrDiffRand(1)};
@@ -209,7 +209,7 @@ try
             
             % convert log value from tTest to linear value for
             % presentedRatio; add the exp(tTest) to the reference ratio
-            if ratioArrayOpts(ratioArrayIdx, 3) >0 % ratio 1 simply added value; in ratio 2 we're going to fit a separate staircase for each direction
+            if (strcmpi(stimType, 'stackedType') & ratioArrayOpts(ratioArrayIdx, 3) >0) | ~strcmpi(stimType, 'stackedType')% ratio 1 simply added value; in ratio 2 we're going to fit a separate staircase for each direction
                 presentedRatio(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) = ...
                     ratioArrayOpts(ratioArrayIdx, ~isReferenceBar(ratioArrayIdx,:)) + exp(tTest); % add tTest value to presentedRatio
             elseif ratioArrayOpts(ratioArrayIdx,3) <0
@@ -353,10 +353,11 @@ try
         trialEnd = Screen('Flip', windowPtr, feedbackOnset + (waitframes/8 - 0.5) * ifi);
         
         % save data at trial lvl
-        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder)
+        whoAmIFile = mfilename;
+        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder, whoAmIFile)
         
         % for piloting, save whole .mat file
-        save(['sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
+        save([ whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
         
         % check if it's time for a block break
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
