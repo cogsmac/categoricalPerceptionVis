@@ -202,7 +202,7 @@ try
             bar2Val = ratioArrayOpts(ratioArrayIdx,2); % second bar
             
             % get the same rectangle stimuli as refRect, but different x positions
-            [stimRect, stimHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
+            [stimRect, stimHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
             
         else
             % get the suggested values from quest object (tTest is log intensity)
@@ -218,7 +218,7 @@ try
             % be some proportion
             bar1Val = presentedRatio(ratioArrayIdx,1); % first bar, redundantly save data
             bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
-            [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
+            [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         end
         
         if debugMode
