@@ -1,13 +1,27 @@
 %  This saves data to a text file. Minimizes chances of data loss over
 %  saving at the end of the experiment.
 %
-function saveTrialData_barGraphType(subID, ...  participantID
+function saveTrialData_barGraphType(...
+    ... % basic analysis variables
+    subID, ...  participantID
     stimType, ...  comparisonTask
     trialIterator, ... trialID
     sameOrDiffTrial, ... sameOrDiffTrial
     recordedAnswer, ... letterResponse
     trialAcc, ... accuracy
     ratioArrayOpts, ... on "same" trials, ratioArrayOpts(ratioArrayIdx) is the presented value
+    ... % timing
+    experimentStart, ...
+    fixationOnset, ...
+    stimulus1Onset, ...
+    ISIOnset, ...
+    stimulus2Onset, ...
+    promptOnset, ...
+    responseTime, ...
+    feedbackOnset, ...
+    timeFromStart, ...
+    trialEnd, ...
+    ... % reproducibility
     ratioArrayIdx, ... % whichRatio
     questObject, ... % for the SA (staircase analysis) variables
     presentedRatio,... % presentedRatio; stimulus value in ratio space
@@ -40,9 +54,26 @@ function saveTrialData_barGraphType(subID, ...  participantID
 %         whichRatio, integer; ratioArrayIdx     - a way to index into
 %                                                  ratioArrayOpts to determine reference value
 %
+%       % TIMING ANALYSIS VARIABLES %
 %
-%       [TO DO - rt variables and onset timing]
-%
+%      experimentStart, float; experimentOpenTime - when did this all kick off? [uint64, computer time]
+%        fixationOnset, float; fixationOnset      - start of fixation
+%       stimulus1Onset, float; stimulus1Onset     - start of stimulus
+%                                                   presentation (first item)
+%             ISIOnset, float; stimulus2Offset    - the start of the blank
+%                                                   between stimulus 1 and 2
+%       stimulus2Onset, float; stimulus2Onset     - start of stimulus
+%                                                   presentation (second item)
+%          promptOnset, float; responsePromptOn   - start of self-paced
+%                                                   response phase
+%         responseTime, float; responseTime       - time to say "same" or
+%                                                   "different"
+%        feedbackOnset, float; feedbackOnset      - start of red/green
+%                                                   flash
+%        timeFromStart, float; testIfTimeUp       - "toc" from "tic" on
+%                                                   experimentStart
+%             trialEnd, float; trialEnd           - vbl from last screen
+%                                                   flip
 %
 %       % STAIRCASE ANALYSIS VARIABLES % save only for "different" trials
 %
@@ -64,16 +95,20 @@ function saveTrialData_barGraphType(subID, ...  participantID
 %    presentationOrder, string; mat2str(presentationOrder)
 
 
+directionOfChange = presentedRatio(1,3);
 
 % basic analysis
 varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
 varTypes_BA = ['     %s\t           %s\t             %u\t           %s\t             %s\t           %d\t         %d\t  '];
 dataIn_BA   = { num2str(subID)     stimType     trialIterator  sameOrDiffTrial  recordedAnswer    trialAcc   ratioArrayIdx};
 
-
+% timing analysis
+varNames_Time = {'experimentStart', 'fixationOnset','stimulus1Onset','ISIOnset','stimulus2Onset', 'promptOnset','responseTime', 'feedbackOnset', 'timeFromStart', 'trialEnd'};
+varTypes_Time = ['  %15.1f\t'          '%15.1f\t'       '%15.1f\t'   '%15.1f\t'   '%15.1f\t'        '%15.1f\t'     '%15.1f\t'      '%15.1f\t'       '%15.1f\t'    '%15.1f\t'];
+  dataIn_Time = { experimentStart  fixationOnset     stimulus1Onset   ISIOnset stimulus2Onset   promptOnset   responseTime    feedbackOnset    timeFromStart    trialEnd };
 
 % staircase analysis
-varNames_SA   = { 'testedRatio',       'nRatioPresentations',     'abstractIntensity',       'presentedRatioL', 'presentedRatioR',       'estimatedThreshold', 'estThresholdSD',    'response',          'quantileOrder',        'TTest'};
+varNames_SA   = { 'testedRatio',       'nRatioPresentations',     'abstractIntensity',       'presentedRatioL', 'presentedRatioR',       'estimatedThreshold', 'estThresholdSD',    'response',          'quantileOrder',        'TTest', 'UpdateDirection'};
 if strcmpi(sameOrDiffTrial, 'different')
     qu = questObject;
     tTest = QuestQuantile(qu);
@@ -81,18 +116,17 @@ if strcmpi(sameOrDiffTrial, 'different')
       estThreshold = QuestMean(qu);
     estThresholdSD = QuestSd(qu);
     
-    dataIn_SA ={mat2str(qu.referenceRatio)        qu.trialCount    qu.intensity(qu.trialCount)  presentedRatio(1) presentedRatio(2)         estThreshold   estThresholdSD   qu.response(qu.trialCount)   qu.quantileOrder       tTest };
+    dataIn_SA ={mat2str(qu.referenceRatio)        qu.trialCount    qu.intensity(qu.trialCount)  presentedRatio(1) presentedRatio(2)         estThreshold   estThresholdSD   qu.response(qu.trialCount)   qu.quantileOrder       tTest  directionOfChange};
 else % qu object will not be updated on 'same' trials. Just save some blank values to hold place
-    dataIn_SA ={mat2str(ratioArrayOpts(ratioArrayIdx,:)) NaN            NaN     ratioArrayOpts(ratioArrayIdx,1) ratioArrayOpts(ratioArrayIdx,1)   NaN           NaN                trialAcc                   NaN                NaN  };
+    dataIn_SA ={mat2str(ratioArrayOpts(ratioArrayIdx,:)) NaN            NaN     ratioArrayOpts(ratioArrayIdx,1) ratioArrayOpts(ratioArrayIdx,1)   NaN           NaN                trialAcc                   NaN                NaN          NaN       };
 end
-varTypes_SA   = [    '%s\t                            %d\t              %3.6f\t                    %3.6f\t          %3.6f\t                    %3.6f\t          %3.6f\t             %u\t                      %1.6f\t            %1.6f\t  '  ];
+varTypes_SA   = [    '%s\t                            %d\t              %3.6f\t                    %3.6f\t          %3.6f\t                    %3.6f\t          %3.6f\t             %u\t                      %1.6f\t            %1.6f\t      %d\t     '  ];
 
 % reproducible trial DEtails
 varNames_DE   = { 'StimLeftBarLeft', 'StimLeftBarTop', 'StimLeftBarRight', 'StimLeftBarBottom', 'StimRightBarTop', 'StimRightBarLeft', 'StimRightBarBottom', 'StimRightBarRight', 'refStimOrder'} ;
   dataIn_DE   = {                                                               stimRect(:,1)'                                                                    stimRect(:,2)'   mat2str(presentationOrder)};
 varTypes_DE   = [    ' %4.4f\t             %4.4f\t             %4.4f\t          %4.4f\t             %4.4f\t             %4.4f\t             %4.4f\t                 %4.4f\t         %s'  ];
 
-%
 %
 %       % DETAIL METHOD VARIABLES %
 %
@@ -114,12 +148,12 @@ varTypes_DE   = [    ' %4.4f\t             %4.4f\t             %4.4f\t          
 
 % Create header row
 if ~(exist([num2str(subID) whoAmIFile 'trialLvl.txt'])==2)
-    fID = fopen([ num2str(subID) 'trialLvl.txt'], 'a+'); % open file
+    fID = fopen([ num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+'); % open file
     
     % all the variable names are strings; save as such
-    varTypes_names = repmat('%s\t ', 1, length(varNames_BA)+length(varNames_SA)+length(varNames_DE));
+    varTypes_names = repmat('%s\t ', 1, length(varNames_BA)+length(varNames_Time)+length(varNames_SA)+length(varNames_DE));
     
-    namesIn = {varNames_BA{:} varNames_SA{:} varNames_DE{:}};
+    namesIn = {varNames_BA{:} varNames_Time{:} varNames_SA{:} varNames_DE{:}};
     
     % push to file
     fprintf(fID, [varTypes_names '\n'], namesIn{:}); % save data
@@ -132,8 +166,8 @@ end
 % Open/create a file named after this subject; spec. permission to append
 fID = fopen([ num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+');
 
-dataIn = {dataIn_BA{:} dataIn_SA{:} dataIn_DE{:}};
-fprintf(fID, [varTypes_BA varTypes_SA varTypes_DE '\n'], dataIn{:}); % save data
+dataIn = {dataIn_BA{:} dataIn_Time{:} dataIn_SA{:} dataIn_DE{:}};
+fprintf(fID, [varTypes_BA varTypes_Time varTypes_SA varTypes_DE '\n'], dataIn{:}); % save data
 fclose(fID); % close the file connection
 
 
