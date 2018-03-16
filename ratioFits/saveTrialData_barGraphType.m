@@ -13,15 +13,16 @@ function saveTrialData_barGraphType(subID, ...  participantID
     presentedRatio,... % presentedRatio; stimulus value in ratio space
     stimRect, ... % [x1 y1 x2 y2]; the rectangle values for the manipulated stim
     refRect,... % [x1 y1 x2 y2]; the rectangle values for the reference stim
-    presentationOrder)
+    presentationOrder, ...
+    whoAmIFile)
 
 %
 %  Author: Caitlyn McColeman
 %  Date Created: Feb 28 2018
-%  Last Edit:
+%  Last Edit:  March 16 2018
 %
 %  Visual Thinking Lab, Northwestern University
-%  Originally Created For:
+%  Originally Created For: ratio1
 %
 %  Reviewed: []
 %  Verified: []
@@ -107,10 +108,12 @@ varTypes_DE   = [    ' %4.4f\t             %4.4f\t             %4.4f\t          
 %  Additional Scripts Used: [Insert all scripts called on]
 %
 %  Additional Comments:
+%       - extended March 16 with whoAmIFile to mark the name of the
+%       experiment wrapper that calls this data saving function
 
 
 % Create header row
-if ~(exist([num2str(subID) 'trialLvl.txt'])==2)
+if ~(exist([num2str(subID) whoAmIFile 'trialLvl.txt'])==2)
     fID = fopen([ num2str(subID) 'trialLvl.txt'], 'a+'); % open file
     
     % all the variable names are strings; save as such
@@ -127,7 +130,7 @@ end
 
 
 % Open/create a file named after this subject; spec. permission to append
-fID = fopen([ num2str(subID) 'trialLvl.txt'], 'a+');
+fID = fopen([ num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+');
 
 dataIn = {dataIn_BA{:} dataIn_SA{:} dataIn_DE{:}};
 fprintf(fID, [varTypes_BA varTypes_SA varTypes_DE '\n'], dataIn{:}); % save data
