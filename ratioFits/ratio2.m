@@ -66,10 +66,8 @@ if debugMode
 end
 
 % Basic experiment parameters
-nMinutes = 50; % maximum duration
+nMinutes = 1; % maximum duration
 trialPerBlock = 100;
-
-experimentOpenTime = tic; testIfTimeUp = 0;
 
 % Here we call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
@@ -90,6 +88,8 @@ screenNumber = max(screens);
 white = WhiteIndex(screenNumber);
 black = BlackIndex(screenNumber);
 lightGrey = [.75 .75 .75];
+
+experimentOpenTime = tic; testIfTimeUp = 0;
 
 % Open an on screen window
 [windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey);%, [1 1 1200 750]);
@@ -224,7 +224,10 @@ try
             bar2Val = presentedRatio(ratioArrayIdx,2); % second bar
             [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         end
-        
+        impossibleIdx = stimRect(4,:) <= stimRect(2,:);
+        if impossibleIdx > 0
+            stimRect(impossibleIdx) = stimRect(4,:);
+        end
         if debugMode
             display([bar1Val bar2Val]) %#ok<UNRCH>
             [nx, ny, bbox] = DrawFormattedText(windowPtr, num2str(trialIterator), 'center', 'center', 0);
@@ -354,19 +357,19 @@ try
         
         % save data at trial lvl
         whoAmIFile = mfilename;
-        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder, whoAmIFile)
         
         % for piloting, save whole .mat file
         save([ whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
+        remainingTime = round(nMinutes - testIfTimeUp/60);
         
         % check if it's time for a block break
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
-            
-            remainingTime = round(nMinutes - testIfTimeUp/60);
             % take a break
             blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime)
-            
         end
+        
+        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, experimentOpenTime, fixationOnset, stimulus1Onset, stimulus1Offset, stimulus2Onset, promptOnset, responseTime, feedbackOnset, remainingTime, trialEnd, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder, whoAmIFile)
+        
         
     end
     %% 6) save final experiment level data
