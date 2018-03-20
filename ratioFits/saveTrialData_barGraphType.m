@@ -33,7 +33,7 @@ function saveTrialData_barGraphType(...
 %
 %  Author: Caitlyn McColeman
 %  Date Created: Feb 28 2018
-%  Last Edit:  March 16 2018
+%  Last Edit:  March 20 2018
 %
 %  Visual Thinking Lab, Northwestern University
 %  Originally Created For: ratio1
@@ -118,7 +118,7 @@ if strcmpi(sameOrDiffTrial, 'different')
     
     dataIn_SA ={mat2str(qu.referenceRatio)        qu.trialCount    qu.intensity(qu.trialCount)  presentedRatio(1) presentedRatio(2)         estThreshold   estThresholdSD   qu.response(qu.trialCount)   qu.quantileOrder       tTest  directionOfChange};
 else % qu object will not be updated on 'same' trials. Just save some blank values to hold place
-    dataIn_SA ={mat2str(ratioArrayOpts(ratioArrayIdx,:)) NaN            NaN     ratioArrayOpts(ratioArrayIdx,1) ratioArrayOpts(ratioArrayIdx,1)   NaN           NaN                trialAcc                   NaN                NaN          NaN       };
+    dataIn_SA ={mat2str(ratioArrayOpts(ratioArrayIdx,:)) NaN            NaN     ratioArrayOpts(ratioArrayIdx,1) ratioArrayOpts(ratioArrayIdx,2)   NaN           NaN                trialAcc                   NaN                NaN          NaN       };
 end
 varTypes_SA   = [    '%s\t                            %d\t              %3.6f\t                    %3.6f\t          %3.6f\t                    %3.6f\t          %3.6f\t             %u\t                      %1.6f\t            %1.6f\t      %d\t     '  ];
 
@@ -137,17 +137,18 @@ varTypes_DE   = [    ' %4.4f\t             %4.4f\t             %4.4f\t          
 %    presentationOrder, string; mat2str(presentationOrder)
 %
 %
-%  OUTPUT: [Insert Outputs of this script]
+%  OUTPUT: Saves a .txt file; tab delimited to the data directory
 %
-%  Additional Scripts Used: [Insert all scripts called on]
+%  Additional Scripts Used: 
 %
 %  Additional Comments:
 %       - extended March 16 with whoAmIFile to mark the name of the
-%       experiment wrapper that calls this data saving function
+%       experiment wrapper that calls this data saving function. This will
+%       break the function for ratio1.m.
 
 
 % Create header row
-if ~(exist([num2str(subID) whoAmIFile 'trialLvl.txt'])==2)
+if ~(exist(['../ratioFits_data2/' num2str(subID) whoAmIFile 'trialLvl.txt'])==2)
     fID = fopen([ num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+'); % open file
     
     % all the variable names are strings; save as such
@@ -164,7 +165,7 @@ end
 
 
 % Open/create a file named after this subject; spec. permission to append
-fID = fopen([ num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+');
+fID = fopen(['../ratioFits_data2/' num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+');
 
 dataIn = {dataIn_BA{:} dataIn_Time{:} dataIn_SA{:} dataIn_DE{:}};
 fprintf(fID, [varTypes_BA varTypes_Time varTypes_SA varTypes_DE '\n'], dataIn{:}); % save data
