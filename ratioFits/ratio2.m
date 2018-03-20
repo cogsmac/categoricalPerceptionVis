@@ -359,7 +359,7 @@ try
         whoAmIFile = mfilename;
         
         % for piloting, save whole .mat file
-        save([ whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
+        save(['../ratioFits_data2/' whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
         remainingTime = round(nMinutes - testIfTimeUp/60);
         
         % check if it's time for a block break
