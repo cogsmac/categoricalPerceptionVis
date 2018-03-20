@@ -45,7 +45,7 @@ function [stimRect1, stimRect2, heightBar1, heightBar2] =ratio1StimulusVals(...
 
 
 rectWidth = screenSize(1)/18;
-fullRectHeight = screenSize(2)/5; % so 100% of the ratio is 1/5 the screen
+fullRectHeight = screenSize(2)/6; % so 100% of the ratio is 1/6 the screen, changed from 1/5 in ratio1
 
 % determine heights of bars
 if strcmpi(stimType, 'barGraphType') | strcmpi(stimType, 'stackedType')
