@@ -225,8 +225,8 @@ try
             [stimRect, rectHeights]= barGraphType(presentedRatio(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         end
         impossibleIdx = stimRect(4,:) <= stimRect(2,:);
-        if impossibleIdx > 0
-            stimRect(impossibleIdx) = stimRect(4,:);
+        if sum(impossibleIdx) > 0
+            stimRect(2, impossibleIdx) = stimRect(4,impossibleIdx) - 1;
         end
         if debugMode
             display([bar1Val bar2Val]) %#ok<UNRCH>
