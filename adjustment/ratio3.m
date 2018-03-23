@@ -35,7 +35,8 @@ function ratio3(subID)
 %           4) record response
 %           6) save data
 %
-%  Additional Scripts Used:
+%  Additional Scripts Used: [TODO] update when the code's finished to
+%                                  accurately reflect what this calls
 %           1) Quest package (distributed via psychtoolbox) TODO: add
 %                   citations
 %           2) positionRef.m, barGraphType.m
@@ -110,12 +111,11 @@ waitframes = round(flipSecs / ifi);
 HideCursor() % get rid of mouse cursor 
 
 % which ratios are we testing?
-changingVal = .1:.2:.9;
+changingVal = .01:.01:.99; % finer resolution in adjustment study than in the psychophysics one because we aren't staircasing
 constantVal = ones(length(changingVal),1);
 
 ratioArrayOpts = [[changingVal' constantVal ]; % test value,      reference value,  
                   [constantVal changingVal' ]];% reference value, test value
-
 
 % which are we comparing to?
 isReferenceBar = ratioArrayOpts(:,1:2) == 1;
@@ -134,21 +134,14 @@ sameOrDiffResp  = {'f'   , 'j'};
 % allow only task-relevant responses [TODO] probably just want "enter" when
 % they're done
 allowedResponses = [KbName(sameOrDiffResp{1}) KbName(sameOrDiffResp{2})];
-ret = RestrictKeysForKbCheck([allowedResponses 44]); % also 44 for spacebar
+ret = RestrictKeysForKbCheck([32 44 40 37 77 88]); % spacebar, return and enter for OSx and PC
 
-% set-up intial psychometric values for Quest [TODO] kill this
-pThreshold=0.82;
-beta=3.5;delta=0.01;gamma=0.5;
-guessThreshold = log(.1);
-guessSD = 3; 
-
-% one fit for each ratio match [TODO] kill this
-qu=table;
-for i = 1:length(ratioArrayOpts)
-    qu.(i)=QuestCreate(guessThreshold,guessSD,pThreshold,beta,delta,gamma);
-    qu.(i).normalizePdf=1;
-    qu.(i).referenceRatio = ratioArrayOpts(i,:);
-end
+% make sure we're in the right place in the directory so that stuff saves
+% to the proper location
+whereAmI = mfilename('fullpath') ;
+toLastDir=regexp(whereAmI, '.*\/', 'match') ;% get directory only (exclude file name)
+toLastDir = toLastDir{1}; % extract string from cell
+cd(toLastDir) % move to containing directory
 
 %% Start experiment loop
 
