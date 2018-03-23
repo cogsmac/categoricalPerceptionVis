@@ -108,8 +108,6 @@ Priority(topPriorityLevel);
 flipSecs = .75;
 waitframes = round(flipSecs / ifi);
 
-HideCursor() % get rid of mouse cursor 
-
 % which ratios are we testing?
 changingVal = .01:.01:.99; % finer resolution in adjustment study than in the psychophysics one because we aren't staircasing
 constantVal = ones(length(changingVal),1);
@@ -136,7 +134,7 @@ sameOrDiffResp  = {'f'   , 'j'};
 % allow only task-relevant responses [TODO] probably just want "enter" when
 % they're done
 allowedResponses = [KbName(sameOrDiffResp{1}) KbName(sameOrDiffResp{2})];
-ret = RestrictKeysForKbCheck([32 44 40 37 77 88]); % spacebar, return and enter for OSx and PC
+ret = RestrictKeysForKbCheck([32 44 40 37 77 88]); % spacebar, return and enter for OSx and PC. only tested on mac
 
 % make sure we're in the right place in the directory so that stuff saves
 % to the proper location
@@ -148,6 +146,7 @@ cd(toLastDir) % move to directory containing the file. Think of it as home base.
 %% Start experiment loop
 
 try
+    
     endExp = 0; % escape condition
     trialIterator = 0; % count how many trials we've done
     %% 2) stimulus presentation
@@ -158,6 +157,7 @@ try
         trialIterator = trialIterator + 1;
         
         trialOnset = Screen('Flip', windowPtr);
+        HideCursor() % get rid of mouse cursor 
         
         % add fixation cross
         fixationCross = '+';
@@ -171,7 +171,7 @@ try
         % set up trial 
         ratioArrayIdx = randi([1 length(ratioArrayOpts)],1,1); % which ratio difference (how different is each bar)?
         
-        position = datasample([1:4, 6:9],2,'Replace',false); % save center for reminder, "hit enter to advance"
+        position = datasample([1:4, 6:9],2,'Replace',false); % save center (position 5) for reminder, "hit enter to advance"
         
         Screen('FillRect', windowPtr, lightGrey);
         
@@ -179,8 +179,7 @@ try
         [refRect, refHeights]  =barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(1), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         [stimRect, stimHeights]=barGraphType(ratioArrayOpts(ratioArrayIdx,:), position(2), [screenXpixels, screenYpixels], stimType, isReferenceBar(ratioArrayIdx,:));
         
-        % make sure we don't draw a negative rectangle [TODO] adapt to make
-        % a user constraint on the response space
+        % make sure we don't draw a negative rectangle 
         impossibleIdx = stimRect(4,:) <= stimRect(2,:);
         
         if sum(impossibleIdx) > 0
@@ -214,22 +213,17 @@ try
         
         
         % ... wait for waitframes to pass and begin the response phase
-        %   [TODO ] rename the response phase from stimulus2Onset to
-        %   responseOnset
-        %   [TODO ] add another flip inside of the forthcoming while loops
         advancePressed = 0; % will turn to one when enter/return is pressed on keyboard
         
-        % present the reference bar and allow response [TODO] code in mouse
-        % drags and record final cursor position
+        % initialize values for while loop
+        keycode =0; hasBeenAdjusted = 0;
+        
+        % present the reference bar and allow response [TODO] record final cursor position
         ShowCursor('arrow')
         if ~strcmpi(stimType, 'stackedType') % this is the bar graph one
-            %the reference one
-            %Screen('FillRect', windowPtr, lightGrey/2, refRect);
             
-            % [TODO] while loop for mouse adjustment for the second
-            % rectangle
-            keycode =0;
             drawRect = stimRect(:, ~isReferenceBar(ratioArrayIdx,:));
+            % start RT counter
             responseOnset = Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
             while ~sum(keycode)>0
                 commandwindow;
@@ -239,21 +233,38 @@ try
                 
                 [x,y,buttons,focus,valuators,valinfo] = GetMouse();
            
-                display(num2str(x))
-                display(num2str(buttons))
+                % update the drawn rectangle/show a cross hair to indicate
+                % that it can be adjusted 
+                % [TODO] clean this up in a separate function
                 if x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:)) && sum(buttons)>0
-                    
+                    hasBeenAdjusted = 1;
                     % update the adjusted rectangle
-                    drawRect(2) = y;
+                    drawRect(2) = min(y, drawRect(4));
                     
                     ShowCursor('CrossHair')
-                    
                     Screen('FillRect', windowPtr, lightGrey/2, drawRect);
+                
+                elseif hasBeenAdjusted && x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:))
+                    ShowCursor('CrossHair')
+                    % keep the most recent adjusted rectangle on screen
+                    Screen('FillRect', windowPtr, lightGrey/2, drawRect);
+                
+                elseif x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:))
+                    % no current action, but in the region to make one. show cross
+                    % hair
+                    ShowCursor('CrossHair')
+                    
+                elseif hasBeenAdjusted
+                    % no current action, outside of region to adjust
+                    Screen('FillRect', windowPtr, lightGrey/2, drawRect);
+                    ShowCursor('Arrow')
                 else
+                    % no action (current or past), not in the region to
+                    % adjust 
                     ShowCursor('Arrow')
                 end
                 
-                % add reminder for interface
+                % add reminder for interface. Occurs in position 5.
                 instructionTxt = 'Press enter to advance';
                 
                 % Horizontally and vertically centered:
