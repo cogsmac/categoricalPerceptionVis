@@ -17,6 +17,12 @@ function [hasBeenAdjusted, updatedRect] = mouseAdjustment(inAdjustmentRegion, we
 %         weHaveSomethingToDraw, bin; is there already an adjusted value
 %                                     from the last iteration?
 %                    buttonDown, bin; is the mouse button being pressed?
+%                adjustableRect,vect; the x1, y1, x2, y2 values of the new
+%                                     rectangle to draw
+%                             y, int; the updated y value for the rectangle
+%                     windowPtr, int; the index to the stimulus
+%                                     presentation window to draw the
+%                                     rectangle to
 %
 %  OUTPUT: drawRect, vector; coordinates for the new rectangle
 %
