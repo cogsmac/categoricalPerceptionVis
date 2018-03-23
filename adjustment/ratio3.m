@@ -143,6 +143,8 @@ toLastDir = regexp(whereAmI, '.*\/', 'match') ;% get directory only (exclude fil
 toLastDir = toLastDir{1}; % extract string from cell
 cd(toLastDir) % move to directory containing the file. Think of it as home base.
 
+userBuffer = 40; %pixels; give a little extra room past the edges to improve usability
+
 %% Start experiment loop
 
 try
@@ -225,17 +227,25 @@ try
             drawRect = stimRect(:, ~isReferenceBar(ratioArrayIdx,:));
             % start RT counter
             responseOnset = Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
+            commandwindow;
             while ~sum(keycode)>0
-                commandwindow;
-                
                 % draw the reference bar (ratio = 1)
                 Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
                 
                 [x,y,buttons,focus,valuators,valinfo] = GetMouse();
-           
+                
+                % prep conditions to update the rectangel
+                    inAdjustmentRegion = x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:));
+                 weHaveSomethingToDraw = hasBeenAdjusted;
+                            buttonDown = sum(buttons)>0;
+                        adjustableRect = drawRect;
+                
                 % update the drawn rectangle/show a cross hair to indicate
                 % that it can be adjusted 
                 % [TODO] clean this up in a separate function
+                
+                [hasBeenAdjusted, updatedRect] = mouseAdjustment(inAdjustmentRegion, weHaveSomethingToDraw, buttonDown, adjustableRect, y, windowPtr, lightGrey);
+               %{
                 if x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:)) && sum(buttons)>0
                     hasBeenAdjusted = 1;
                     % update the adjusted rectangle
@@ -263,8 +273,9 @@ try
                     % adjust 
                     ShowCursor('Arrow')
                 end
+                %}
                 
-                % add reminder for interface. Occurs in position 5.
+                % add reminder for interface. Occurs in position 5 -- center of screen.
                 instructionTxt = 'Press enter to advance';
                 
                 % Horizontally and vertically centered:
