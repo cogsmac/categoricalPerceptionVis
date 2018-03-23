@@ -127,6 +127,8 @@ possibleStimTypes = {'barGraphType', 'stackedType'};
       condChooser = randperm(length(possibleStimTypes));
          stimType = possibleStimTypes{condChooser(1)};
 
+         
+         stimType = 'barGraphType'
 % preparing logging variables % this is where the structure departs [TODO]
 sameOrDiffTitle = {'same', 'different'};
 sameOrDiffResp  = {'f'   , 'j'};
@@ -138,10 +140,10 @@ ret = RestrictKeysForKbCheck([32 44 40 37 77 88]); % spacebar, return and enter 
 
 % make sure we're in the right place in the directory so that stuff saves
 % to the proper location
-whereAmI = mfilename('fullpath') ;
-toLastDir=regexp(whereAmI, '.*\/', 'match') ;% get directory only (exclude file name)
+whereAmI  = mfilename('fullpath') ;
+toLastDir = regexp(whereAmI, '.*\/', 'match') ;% get directory only (exclude file name)
 toLastDir = toLastDir{1}; % extract string from cell
-cd(toLastDir) % move to containing directory
+cd(toLastDir) % move to directory containing the file. Think of it as home base.
 
 %% Start experiment loop
 
@@ -162,7 +164,6 @@ try
         % Horizontally and vertically centered:
         [nx, ny, bbox] = DrawFormattedText(windowPtr, fixationCross, 'center', 'center', 0);
         
-        
         % Flip to the screen (wait just three frames)
         fixationOnset = Screen('Flip', windowPtr, trialOnset + 3 * ifi);
         
@@ -170,7 +171,7 @@ try
         % set up trial 
         ratioArrayIdx = randi([1 length(ratioArrayOpts)],1,1); % which ratio difference (how different is each bar)?
         
-        position = datasample(1:9,2,'Replace',false); 
+        position = datasample([1:4, 6:9],2,'Replace',false); % save center for reminder, "hit enter to advance"
         
         Screen('FillRect', windowPtr, lightGrey);
         
@@ -216,17 +217,55 @@ try
         %   [TODO ] rename the response phase from stimulus2Onset to
         %   responseOnset
         %   [TODO ] add another flip inside of the forthcoming while loops
-        stimulus2Onset = Screen('Flip', windowPtr, stimulus1Offset + (waitframes/4 - 0.5) * ifi);
+        advancePressed = 0; % will turn to one when enter/return is pressed on keyboard
         
         % present the reference bar and allow response [TODO] code in mouse
         % drags and record final cursor position
-        if ~strcmpi(stimType, 'stackedType')
+        ShowCursor('arrow')
+        if ~strcmpi(stimType, 'stackedType') % this is the bar graph one
             %the reference one
-            Screen('FillRect', windowPtr, lightGrey/2, refRect);
+            %Screen('FillRect', windowPtr, lightGrey/2, refRect);
             
             % [TODO] while loop for mouse adjustment for the second
             % rectangle
-            
+            keycode =0;
+            drawRect = stimRect(:, ~isReferenceBar(ratioArrayIdx,:));
+            responseOnset = Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
+            while ~sum(keycode)>0
+                commandwindow;
+                
+                % draw the reference bar (ratio = 1)
+                Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
+                
+                [x,y,buttons,focus,valuators,valinfo] = GetMouse();
+           
+                display(num2str(x))
+                display(num2str(buttons))
+                if x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:)) && sum(buttons)>0
+                    
+                    % update the adjusted rectangle
+                    drawRect(2) = y;
+                    
+                    ShowCursor('CrossHair')
+                    
+                    Screen('FillRect', windowPtr, lightGrey/2, drawRect);
+                else
+                    ShowCursor('Arrow')
+                end
+                
+                % add reminder for interface
+                instructionTxt = 'Press enter to advance';
+                
+                % Horizontally and vertically centered:
+                [nx, ny, bbox] = DrawFormattedText(windowPtr, instructionTxt, 'center', 'center', 0);
+                
+                [touch, secs, keycode, timingChk] = KbCheck(kbPointer);
+                keyIn = KbName(keycode);
+                
+                Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
+                WaitSecs(0.001); % avoid overloading the system on checks, update keyboard and mouse status each millisecond
+                
+            end
         else % run seperate function to draw the stacked bar graphs
                 % draw reference bar
                 drawStackedGraph(fullRangeRect, plotValueRect, windowPtr, lightGrey/2)
@@ -253,7 +292,7 @@ try
         
         commandwindow; % record key presses outside of experiment in command line so code doesn't get messy
         
-        promptOnset = Screen('Flip', windowPtr, stimulus2Onset + (waitframes - 0.5) * ifi);
+        promptOnset = Screen('Flip', windowPtr, stimulus1Offset + (waitframes - 0.5) * ifi);
         responseOnset = tic; % should the same as prompOnset; coding for safe redundancy/checking
         while ~touch
             % Sleep one millisecond after each check, so we don't
