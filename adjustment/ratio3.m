@@ -133,8 +133,7 @@ sameOrDiffResp  = {'f'   , 'j'};
 
 % allow only task-relevant responses [TODO] probably just want "enter" when
 % they're done
-allowedResponses = [KbName(sameOrDiffResp{1}) KbName(sameOrDiffResp{2})];
-ret = RestrictKeysForKbCheck([32 44 40 37 77 88]); % spacebar, return and enter for OSx and PC. only tested on mac
+% ret = RestrictKeysForKbCheck([32 44 40 37 77 88]); % spacebar, return and enter for OSx and PC. only tested on mac
 
 % make sure we're in the right place in the directory so that stuff saves
 % to the proper location
@@ -228,53 +227,23 @@ try
             % start RT counter
             responseOnset = Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
             commandwindow;
+            updatedRect = drawRect; updatedRect(2)=updatedRect(4)+1; % a one-pixel high rectangle to start
             while ~sum(keycode)>0
                 % draw the reference bar (ratio = 1)
                 Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
                 
                 [x,y,buttons,focus,valuators,valinfo] = GetMouse();
                 
-                % prep conditions to update the rectangel
+                % prep conditions to update the rectangle
                     inAdjustmentRegion = x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:));
                  weHaveSomethingToDraw = hasBeenAdjusted;
                             buttonDown = sum(buttons)>0;
-                        adjustableRect = drawRect;
+                           
                 
                 % update the drawn rectangle/show a cross hair to indicate
                 % that it can be adjusted 
-                % [TODO] clean this up in a separate function
-                
-                [hasBeenAdjusted, updatedRect] = mouseAdjustment(inAdjustmentRegion, weHaveSomethingToDraw, buttonDown, adjustableRect, y, windowPtr, lightGrey);
-               %{
-                if x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:)) && sum(buttons)>0
-                    hasBeenAdjusted = 1;
-                    % update the adjusted rectangle
-                    drawRect(2) = min(y, drawRect(4));
-                    
-                    ShowCursor('CrossHair')
-                    Screen('FillRect', windowPtr, lightGrey/2, drawRect);
-                
-                elseif hasBeenAdjusted && x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:))
-                    ShowCursor('CrossHair')
-                    % keep the most recent adjusted rectangle on screen
-                    Screen('FillRect', windowPtr, lightGrey/2, drawRect);
-                
-                elseif x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:))
-                    % no current action, but in the region to make one. show cross
-                    % hair
-                    ShowCursor('CrossHair')
-                    
-                elseif hasBeenAdjusted
-                    % no current action, outside of region to adjust
-                    Screen('FillRect', windowPtr, lightGrey/2, drawRect);
-                    ShowCursor('Arrow')
-                else
-                    % no action (current or past), not in the region to
-                    % adjust 
-                    ShowCursor('Arrow')
-                end
-                %}
-                
+                [hasBeenAdjusted, updatedRect] = mouseAdjustment(inAdjustmentRegion, weHaveSomethingToDraw, buttonDown, updatedRect, y, windowPtr, lightGrey);
+               
                 % add reminder for interface. Occurs in position 5 -- center of screen.
                 instructionTxt = 'Press enter to advance';
                 
