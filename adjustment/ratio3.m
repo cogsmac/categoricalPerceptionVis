@@ -118,15 +118,13 @@ ratioArrayOpts = [[changingVal' constantVal ]; % test value,      reference valu
 % which are we comparing to?
 isReferenceBar = ratioArrayOpts(:,1:2) == 1;
 
-presentedRatio = ratioArrayOpts; % initialize [TODO] Kill all presented ratio
+%presentedRatio = ratioArrayOpts; % initialize [TODO] Kill all presented ratio
 
 % what type of stimulus are we doing the same/different task with?
 possibleStimTypes = {'barGraphType', 'stackedType'}; 
       condChooser = randperm(length(possibleStimTypes));
-         stimType = possibleStimTypes{condChooser(1)};
+         stimType = 'stackedType'; possibleStimTypes{condChooser(1)};
 
-         
-         stimType = 'barGraphType'
 % preparing logging variables % this is where the structure departs [TODO]
 sameOrDiffTitle = {'same', 'different'};
 sameOrDiffResp  = {'f'   , 'j'};
@@ -143,6 +141,9 @@ toLastDir = toLastDir{1}; % extract string from cell
 cd(toLastDir) % move to directory containing the file. Think of it as home base.
 
 userBuffer = 40; %pixels; give a little extra room past the edges to improve usability
+
+ % add reminder for interface. Occurs in position 5 -- center of screen.
+                    instructionTxt = 'Press enter to advance';
 
 %% Start experiment loop
 
@@ -212,111 +213,101 @@ try
         Screen('FillRect', windowPtr, lightGrey);
         stimulus1Offset = Screen('Flip', windowPtr, stimulus1Onset + (waitframes - 0.5) * ifi);
         
-        
-        % ... wait for waitframes to pass and begin the response phase
         advancePressed = 0; % will turn to one when enter/return is pressed on keyboard
         
         % initialize values for while loop
-        keycode =0; hasBeenAdjusted = 0;
+        keycode =0; hasBeenAdjusted = 0; 
+        
+        responseAdjustmentRec = [];
+        commandwindow; 
         
         % present the reference bar and allow response [TODO] record final cursor position
         ShowCursor('arrow')
         if ~strcmpi(stimType, 'stackedType') % this is the bar graph one
-            
+            % draw reference bar
             drawRect = stimRect(:, ~isReferenceBar(ratioArrayIdx,:));
-            % start RT counter
-            responseOnset = Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
-            commandwindow;
+            % draw response bar
             updatedRect = drawRect; updatedRect(2)=updatedRect(4)+1; % a one-pixel high rectangle to start
-            while ~sum(keycode)>0
-                % draw the reference bar (ratio = 1)
-                Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
-                
-                [x,y,buttons,focus,valuators,valinfo] = GetMouse();
-                
-                % prep conditions to update the rectangle
-                    inAdjustmentRegion = x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:));
-                 weHaveSomethingToDraw = hasBeenAdjusted;
-                            buttonDown = sum(buttons)>0;
-                           
-                
-                % update the drawn rectangle/show a cross hair to indicate
-                % that it can be adjusted 
-                [hasBeenAdjusted, updatedRect] = mouseAdjustment(inAdjustmentRegion, weHaveSomethingToDraw, buttonDown, updatedRect, y, windowPtr, lightGrey);
-               
-                % add reminder for interface. Occurs in position 5 -- center of screen.
-                instructionTxt = 'Press enter to advance';
-                
-                % Horizontally and vertically centered:
-                [nx, ny, bbox] = DrawFormattedText(windowPtr, instructionTxt, 'center', 'center', 0);
-                
-                [touch, secs, keycode, timingChk] = KbCheck(kbPointer);
-                keyIn = KbName(keycode);
-                
-                Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
-                WaitSecs(0.001); % avoid overloading the system on checks, update keyboard and mouse status each millisecond
-                
-            end
+            
         else % run seperate function to draw the stacked bar graphs
-                % draw reference bar
-                drawStackedGraph(fullRangeRect, plotValueRect, windowPtr, lightGrey/2)
-            % [TODO] while loop for mouse adjustment for the second
-            % rectangle
-                fullRangeRect = refRect(:,  isReferenceBar(ratioArrayIdx,:));
-                % [TODO] second input here needs to be the rectangle corresponding to the user-drawn one.
-                drawStackedGraph(fullRangeRect, referenceRect, windowPtr, lightGrey/2)
-
+            
+            updatedRect = fullRangeRect; updatedRect(2)=updatedRect(4)-1; % a one-pixel high rectangle to start
+            % draw reference bar, response bar
+            drawStackedGraph(fullRangeRect, updatedRect, windowPtr, lightGrey/2)
         end
+        % start RT counter
+        responseOnset = Screen('Flip', windowPtr, stimulus1Offset + waitframes/8 * ifi);
         
-        if debugMode
-            sameOrDiffCorr %#ok<UNRCH>
-        end
-        
-      
-        Screen('FillRect', windowPtr, lightGrey);
-        % ... wait for waitframes to pass and flip the response prompt
-        responsePrompt([screenXpixels, screenYpixels], windowPtr)
-        
-        %% 3) get response
+         %% 3) get response
         trialAcc = NaN; % set to 1 if they're right; 0 if they're wrong. Leave NaN for missed response.
         touch = 0;
         
-        commandwindow; % record key presses outside of experiment in command line so code doesn't get messy
+        mouseSampler = 0;
         
-        promptOnset = Screen('Flip', windowPtr, stimulus1Offset + (waitframes - 0.5) * ifi);
-        responseOnset = tic; % should the same as prompOnset; coding for safe redundancy/checking
-        while ~touch
-            % Sleep one millisecond after each check, so we don't
-            % overload the system in Rush or Priority > 0
-            WaitSecs(0.001);
-            [touch, secs, keycode,timingChk] = KbCheck(kbPointer);
-            recordedAnswer = KbName(keycode);
+        responseOnsetTic = tic; % should the same as prompOnset; coding for safe redundancy/checking
+        while sum(keycode)==0 % present stimuli, and wait for the user to press enter to advance.
+            
+            [touch, secs, keycode, timingChk] = KbCheck(kbPointer)
+            keyIn = KbName(keycode);
+            
+            [x,y,buttons,focus,valuators,valinfo] = GetMouse();
+            
+            
+            if ~strcmpi(stimType, 'stackedType')
+                % draw the reference bar (ratio = 1)
+                Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
+                % prep conditions to update the rectangle
+                inAdjustmentRegion = x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:));
+                
+            else
+                drawStackedGraph(fullRangeRect, updatedRect, windowPtr, lightGrey/2)
+                inAdjustmentRegion = x>fullRangeRect(1) && x<fullRangeRect(3);
+            end
+            
+            weHaveSomethingToDraw = hasBeenAdjusted;
+            buttonDown = sum(buttons)>0;
+            
+            % update the drawn rectangle/show a cross hair to indicate
+            % that it can be adjusted
+            [hasBeenAdjusted, updatedRect] = mouseAdjustment(inAdjustmentRegion, weHaveSomethingToDraw, buttonDown, updatedRect, y, windowPtr, lightGrey);
+            
+            if hasBeenAdjusted
+                mouseSampler = mouseSampler + 1; % keep track of iterations
+                adjustOnset(mouseSampler) = Screen('Flip', windowPtr, stimulus1Offset + (waitframes - 0.5) * ifi);
+                % Horizontally and vertically centered:
+                [nx, ny, bbox] = DrawFormattedText(windowPtr, instructionTxt, 'center', 'center', 0);
+                
+                % record the value of the drawn rectangle this millisecond
+                responseAdjustmentRec = [responseAdjustmentRec updatedRect];
+            end 
+            WaitSecs(0.001); % avoid overloading the system on checks, update keyboard and mouse status each millisecond
         end
-        responseTime = toc(responseOnset);
+        responseTime = toc(responseOnsetTic);
         
-        if strcmpi(sameOrDiffCorr, recordedAnswer)
-            trialAcc = 1;
-            
-            % Color the screen
-            Screen('FillRect', windowPtr, [0 255 0]);
-            
-        else
-            trialAcc = 0;
-            
-            Screen('FillRect', windowPtr, [255 0 0]);
-        end
-        
-        % feedback is a flash 1/8 the duration of stimulus presentation
-        feedbackOnset = Screen('Flip', windowPtr, secs + (waitframes/8 - 0.5) * ifi);
-        
-        currentRatio = presentedRatio(ratioArrayIdx,:);
-        %% 4) adjust staircase
-        if strcmpi('different', sameOrDiffTrial)
-            
-            % Update the pdf
-            qu.(ratioArrayIdx)=QuestUpdate(qu.(ratioArrayIdx),tTest,trialAcc); % Add the new datum (actual test intensity and observer response) to the database.
-            
-        end
+        Screen('FillRect', windowPtr, lightGrey);
+       
+       %% FEEDBACK [todo] style updates
+       if ~strcmpi(stimType, 'stackedType')
+           % draw the reference bar (ratio = 1)
+           Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
+           % prep conditions to update the rectangle
+           inAdjustmentRegion = x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:));
+           
+           % distance between drawn pixels and actually presented pixels
+           errorPxScale = sum(stimRect(:,~isReferenceBar(ratioArrayIdx,:))-updatedRect);
+       else
+           % distance between drawn pixels and actually presented pixels
+           errorPxScale = sum(fullRangeRect-updatedRect);
+       end
+       % distance between drawn proportion and actually presented
+       % proportion
+       errorRatioScale = errorPxScale/stimRect(:,isReferenceBar(ratioArrayIdx,:));
+       
+       pointsScaled = num2str(25-round(1-errorRatioScale)*100);
+       
+       feedbackTxt = [ num2str(pointsScaled) ' points']; % best possible is 25 pts
+       
+       expCumulPts = sum(expCumulPts, errorRatioScale);
         %% 5) check thresholds
         
         % temporal threshold
@@ -331,13 +322,13 @@ try
         whoAmIFile = mfilename;
         
         % for piloting, save whole .mat file
-        save(['../ratioFits_data2/' whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
+        save(['../adjustment_data/' whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
         remainingTime = round(nMinutes - testIfTimeUp/60);
         
         % check if it's time for a block break
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
             % take a break
-            blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime)
+            blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime, cumulativePts)
         end
         
         saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, experimentOpenTime, fixationOnset, stimulus1Onset, stimulus1Offset, stimulus2Onset, promptOnset, responseTime, feedbackOnset, remainingTime, trialEnd, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder, whoAmIFile)
