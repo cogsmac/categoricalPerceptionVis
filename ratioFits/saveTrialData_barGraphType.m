@@ -94,8 +94,11 @@ function saveTrialData_barGraphType(...
 %         refRectRight, string; mat2str(refRect(:,2))
 %    presentationOrder, string; mat2str(presentationOrder)
 
-
-directionOfChange = presentedRatio(1,3);
+if strcmpi(whoAmIFile, 'ratio2.m')
+    directionOfChange = presentedRatio(1,3);
+else
+    directionOfChange = 1;
+end
 
 % basic analysis
 varNames_BA = {'participantID', 'comparisonTask', 'trialID', 'sameOrDiffTrial', 'letterResponse', 'accuracy', 'whichRatio'};
@@ -148,7 +151,7 @@ varTypes_DE   = [    ' %4.4f\t             %4.4f\t             %4.4f\t          
 
 
 % Create header row
-if ~(exist(['../ratioFits_data2/' num2str(subID) whoAmIFile 'trialLvl.txt'])==2)
+if ~(exist(['../' whoAmIFile '_data/' num2str(subID) whoAmIFile 'trialLvl.txt'])==2)
     fID = fopen([ num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+'); % open file
     
     % all the variable names are strings; save as such
@@ -165,7 +168,7 @@ end
 
 
 % Open/create a file named after this subject; spec. permission to append
-fID = fopen(['../ratioFits_data2/' num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+');
+fID = fopen(['../' whoAmIFile '_data/' num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+');
 
 dataIn = {dataIn_BA{:} dataIn_Time{:} dataIn_SA{:} dataIn_DE{:}};
 fprintf(fID, [varTypes_BA varTypes_Time varTypes_SA varTypes_DE '\n'], dataIn{:}); % save data
