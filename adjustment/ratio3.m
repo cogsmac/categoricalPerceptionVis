@@ -59,8 +59,8 @@ if debugMode
 end
 
 % Basic experiment parameters
-nMinutes = 50; % maximum duration
-trialPerBlock = 100;
+nMinutes = 1; % maximum duration
+trialPerBlock = 2;
 
 % Here we call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
@@ -89,7 +89,7 @@ lightGrey = [.75 .75 .75];
 experimentOpenTime = tic; testIfTimeUp = 0;
 
 % Open an on screen window
-[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey);%, [1 1 1200 750]);
+[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey, [1 1 1200 750]);
 Screen('Resolution', windowPtr);
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', windowPtr);
@@ -126,8 +126,9 @@ possibleStimTypes = {'barGraphType', 'stackedType'};
          stimType = 'stackedType'; possibleStimTypes{condChooser(1)};
 
 % preparing logging variables % this is where the structure departs [TODO]
-sameOrDiffTitle = {'same', 'different'};
-sameOrDiffResp  = {'f'   , 'j'};
+%sameOrDiffTitle = {'same', 'different'};
+%sameOrDiffResp  = {'f'   , 'j'};
+sameOrDiffTrial = 'adjust';
 
 % allow only task-relevant responses [TODO] probably just want "enter" when
 % they're done
@@ -142,8 +143,10 @@ cd(toLastDir) % move to directory containing the file. Think of it as home base.
 
 userBuffer = 40; %pixels; give a little extra room past the edges to improve usability
 
- % add reminder for interface. Occurs in position 5 -- center of screen.
-                    instructionTxt = 'Press enter to advance';
+expCumulPts = 0; %initalize point earnings
+
+% add reminder for interface. Occurs in position 5 -- center of screen.
+instructionTxt = 'Press space to advance';
 
 %% Start experiment loop
 
@@ -252,7 +255,6 @@ try
             
             [x,y,buttons,focus,valuators,valinfo] = GetMouse();
             
-            
             if ~strcmpi(stimType, 'stackedType')
                 % draw the reference bar (ratio = 1)
                 Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
@@ -285,29 +287,39 @@ try
         responseTime = toc(responseOnsetTic);
         
         Screen('FillRect', windowPtr, lightGrey);
+        
+        
        
-       %% FEEDBACK [todo] style updates
+        %% FEEDBACK [todo] style updates
        if ~strcmpi(stimType, 'stackedType')
            % draw the reference bar (ratio = 1)
            Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
            % prep conditions to update the rectangle
            inAdjustmentRegion = x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:));
            
+           
+           
+       else % [TO DO ] not full range. ..
            % distance between drawn pixels and actually presented pixels
-           errorPxScale = sum(stimRect(:,~isReferenceBar(ratioArrayIdx,:))-updatedRect);
-       else
-           % distance between drawn pixels and actually presented pixels
-           errorPxScale = sum(fullRangeRect-updatedRect);
+           %errorPxScale = sum(fullRangeRect-updatedRect);
        end
+       
+       % distance between drawn pixels and actually presented pixels
+       errorPxScale = sum(stimRect(:,~isReferenceBar(ratioArrayIdx,:))-updatedRect);
+       
        % distance between drawn proportion and actually presented
        % proportion
-       errorRatioScale = errorPxScale/stimRect(:,isReferenceBar(ratioArrayIdx,:));
+       errorRatioScale = sum(errorPxScale/abs(diff(stimRect([1,3],isReferenceBar(ratioArrayIdx,:)))));
        
-       pointsScaled = num2str(25-round(1-errorRatioScale)*100);
+       pointsScaled = 25-round(abs(errorRatioScale*100));
        
        feedbackTxt = [ num2str(pointsScaled) ' points']; % best possible is 25 pts
        
-       expCumulPts = sum(expCumulPts, errorRatioScale);
+       expCumulPts = expCumulPts + pointsScaled;
+       
+       DrawFormattedText(windowPtr, feedbackTxt, 'center', 'center', 0);
+       
+       feedbackOnset = Screen('Flip', windowPtr, adjustOnset(end) + (waitframes/8 - 0.5) * ifi);
         %% 5) check thresholds
         
         % temporal threshold
@@ -316,22 +328,23 @@ try
         
         % escape if time is up or accuracy is as good as it can be
         Screen('FillRect', windowPtr, lightGrey);
-        trialEnd = Screen('Flip', windowPtr, feedbackOnset + (waitframes/8 - 0.5) * ifi);
+        trialEnd = Screen('Flip', windowPtr, feedbackOnset + (waitframes - 0.5) * ifi);
         
         % save data at trial lvl
         whoAmIFile = mfilename;
         
-        % for piloting, save whole .mat file
-        save(['../adjustment_data/' whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
+        % save whole .mat file so that we can dig into the adjustment
+        % history
+        save(['../' whoAmIFile '_data/' whoAmIFile 'sub' num2str(subID) 'trial' num2str(trialIterator) '.mat'])
         remainingTime = round(nMinutes - testIfTimeUp/60);
         
         % check if it's time for a block break
         if trialIterator>0 && mod(trialIterator, trialPerBlock)==0
             % take a break
-            blockText([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime, cumulativePts)
+            blockTextAdjustment([screenXpixels, screenYpixels], windowPtr, kbPointer, remainingTime, expCumulPts)
         end
         
-        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, recordedAnswer, trialAcc, ratioArrayOpts, experimentOpenTime, fixationOnset, stimulus1Onset, stimulus1Offset, stimulus2Onset, promptOnset, responseTime, feedbackOnset, remainingTime, trialEnd, ratioArrayIdx, qu.(ratioArrayIdx), currentRatio, stimRect, refRect, presentationOrder, whoAmIFile)
+        saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, 'Y', errorRatioScale, ratioArrayOpts, experimentOpenTime, fixationOnset, stimulus1Onset, stimulus1Offset, responseOnset, adjustOnset(1), responseTime, feedbackOnset, remainingTime, trialEnd, ratioArrayIdx, [], ratioArrayOpts(ratioArrayIdx,:), stimRect, refRect, [NaN NaN], whoAmIFile)
         
         
     end
