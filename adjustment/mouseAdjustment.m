@@ -36,7 +36,7 @@ updatedRect = adjustableRect;
 
 
 if inAdjustmentRegion && buttonDown
-    hasBeenAdjusted = 1;
+    hasBeenAdjusted = 1
     % update the adjusted rectangle
     updatedRect(2) = min(y, adjustableRect(4));
     
