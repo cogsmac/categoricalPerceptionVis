@@ -152,7 +152,7 @@ varTypes_DE   = [    ' %4.4f\t             %4.4f\t             %4.4f\t          
 
 % Create header row
 if ~(exist(['../' whoAmIFile '_data/' num2str(subID) whoAmIFile 'trialLvl.txt'])==2)
-    fID = fopen([ num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+'); % open file
+    fID = fopen(['../' whoAmIFile '_data/' num2str(subID) whoAmIFile 'trialLvl.txt'], 'a+'); % open file
     
     % all the variable names are strings; save as such
     varTypes_names = repmat('%s\t ', 1, length(varNames_BA)+length(varNames_Time)+length(varNames_SA)+length(varNames_DE));
