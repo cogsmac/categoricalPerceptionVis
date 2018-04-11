@@ -123,11 +123,10 @@ isReferenceBar = ratioArrayOpts(:,1:2) == 1;
 % what type of stimulus are we doing the same/different task with?
 possibleStimTypes = {'barGraphType', 'stackedType'}; 
       condChooser = randperm(length(possibleStimTypes));
-         stimType = 'stackedType'; possibleStimTypes{condChooser(1)};
+         stimType = possibleStimTypes{condChooser(1)};
+         stimType = 'barGraphType';
 
-% preparing logging variables % this is where the structure departs [TODO]
-%sameOrDiffTitle = {'same', 'different'};
-%sameOrDiffResp  = {'f'   , 'j'};
+% preparing logging variables
 sameOrDiffTrial = 'adjust';
 
 % allow only task-relevant responses [TODO] probably just want "enter" when
@@ -199,14 +198,19 @@ try
         
         if ~strcmpi(stimType, 'stackedType')
             % present the first item
-            % first stimulus is the manipulated, psychophysical one
-            Screen('FillRect', windowPtr, lightGrey/2, stimRect);
+            Screen('FillRect', windowPtr, lightGrey/2, refRect);
         else % run seperate function to draw the stacked bar graphs
-            plotValueRect = stimRect(:, ~isReferenceBar(ratioArrayIdx,:));
-            referenceRect =  refRect(:, ~isReferenceBar(ratioArrayIdx,:));
-            fullRangeRect = stimRect(:,  isReferenceBar(ratioArrayIdx,:));
+            
+            % first stimulus, position(1) [todo make sure this saves like we expect it to]
+            plotValueRect  =  stimRect(:, ~isReferenceBar(ratioArrayIdx,:));
+            fullRangeRect2 =  stimRect(:,  isReferenceBar(ratioArrayIdx,:));
+            
+            % re-present reference rectangle
+            referenceRect  =  refRect(:, ~isReferenceBar(ratioArrayIdx,:));
+            fullRangeRect  =  refRect(:,  isReferenceBar(ratioArrayIdx,:));
+            
             % first stimulus is the manipulated, psychophysical one
-            drawStackedGraph(fullRangeRect, plotValueRect, windowPtr, lightGrey/2)
+            drawStackedGraph(fullRangeRect2, plotValueRect, windowPtr, lightGrey/2)
         end
         
         % push to screen. note vbl is stimulus one onset time and marks removal of fixation cross.
@@ -230,8 +234,8 @@ try
             % draw reference bar
             drawRect = stimRect(:, ~isReferenceBar(ratioArrayIdx,:));
             % draw response bar
-            updatedRect = drawRect; updatedRect(2)=updatedRect(4)+1; % a one-pixel high rectangle to start
-            
+            updatedRect = drawRect; updatedRect(2)=updatedRect(4)-1; % a one-pixel high rectangle to start
+            Screen('FillRect', windowPtr, lightGrey/2, updatedRect);
         else % run seperate function to draw the stacked bar graphs
             
             updatedRect = fullRangeRect; updatedRect(2)=updatedRect(4)-1; % a one-pixel high rectangle to start
@@ -250,7 +254,7 @@ try
         responseOnsetTic = tic; % should the same as prompOnset; coding for safe redundancy/checking
         while sum(keycode)==0 % present stimuli, and wait for the user to press enter to advance.
             
-            [touch, secs, keycode, timingChk] = KbCheck(kbPointer)
+            [touch, secs, keycode, timingChk] = KbCheck(kbPointer);
             keyIn = KbName(keycode);
             
             [x,y,buttons,focus,valuators,valinfo] = GetMouse();
@@ -265,7 +269,8 @@ try
                 drawStackedGraph(fullRangeRect, updatedRect, windowPtr, lightGrey/2)
                 inAdjustmentRegion = x>fullRangeRect(1) && x<fullRangeRect(3);
             end
-            
+            %Screen('Flip', windowPtr, stimulus1Offset + (waitframes - 0.5) * ifi) % show the reference bar
+                
             weHaveSomethingToDraw = hasBeenAdjusted;
             buttonDown = sum(buttons)>0;
             
@@ -287,40 +292,34 @@ try
         responseTime = toc(responseOnsetTic);
         
         Screen('FillRect', windowPtr, lightGrey);
-        
-        
        
-        %% FEEDBACK [todo] style updates
+        %% Feedback
        if ~strcmpi(stimType, 'stackedType')
            % draw the reference bar (ratio = 1)
            Screen('FillRect', windowPtr, lightGrey/2, stimRect(:,isReferenceBar(ratioArrayIdx,:)));
-           % prep conditions to update the rectangle
-           inAdjustmentRegion = x>stimRect(1, ~isReferenceBar(ratioArrayIdx,:)) && x<stimRect(3, ~isReferenceBar(ratioArrayIdx,:));
-           
-           
-           
-       else % [TO DO ] not full range. ..
-           % distance between drawn pixels and actually presented pixels
-           %errorPxScale = sum(fullRangeRect-updatedRect);
        end
        
-       % distance between drawn pixels and actually presented pixels
-       errorPxScale = sum(stimRect(:,~isReferenceBar(ratioArrayIdx,:))-updatedRect);
+       originalYVals= stimRect([2,4],~isReferenceBar(ratioArrayIdx,:));
+          drawnYVals= updatedRect([2,4]);
+          
+        %errorPxScale = presented - drawn
+       errorPxScale = (originalYVals(2)-originalYVals(1)) - (drawnYVals(2)-drawnYVals(1));
        
        % distance between drawn proportion and actually presented
        % proportion
        errorRatioScale = sum(errorPxScale/abs(diff(stimRect([1,3],isReferenceBar(ratioArrayIdx,:)))));
        
-       pointsScaled = 25-round(abs(errorRatioScale*100));
+       pointsScaled = 25-round(abs(errorRatioScale*100),1);
        
        feedbackTxt = [ num2str(pointsScaled) ' points']; % best possible is 25 pts
        
+       % total number of points from the start of the experiment
        expCumulPts = expCumulPts + pointsScaled;
        
        DrawFormattedText(windowPtr, feedbackTxt, 'center', 'center', 0);
        
        feedbackOnset = Screen('Flip', windowPtr, adjustOnset(end) + (waitframes/8 - 0.5) * ifi);
-        %% 5) check thresholds
+        %% 6) check thresholds
         
         % temporal threshold
         testIfTimeUp=toc(experimentOpenTime);
@@ -346,7 +345,7 @@ try
         
         saveTrialData_barGraphType(subID, stimType, trialIterator, sameOrDiffTrial, 'Y', errorRatioScale, ratioArrayOpts, experimentOpenTime, fixationOnset, stimulus1Onset, stimulus1Offset, responseOnset, adjustOnset(1), responseTime, feedbackOnset, remainingTime, trialEnd, ratioArrayIdx, [], ratioArrayOpts(ratioArrayIdx,:), stimRect, refRect, [NaN NaN], whoAmIFile)
         
-        
+         
     end
     %% 6) save final experiment level data
     exitText([screenXpixels, screenYpixels], windowPtr)
