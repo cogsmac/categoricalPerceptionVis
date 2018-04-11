@@ -36,12 +36,16 @@ fullDataSet <- lapply(all.files, read.table, sep="\t", header = TRUE, fill = T, 
 dTableShaped <- rbindlist(fullDataSet, 'fill' = T)
 
 # the automatic order of the testedRatio doesn't make much sense. Reorder them so comparison is easier. 
+if ('ratio2' == expName){
 dTableShaped$testedRatio = factor(dTableShaped$testedRatio,levels(dTableShaped$testedRatio)[c(1,7,14,6,
                                                                                               3,9,2,8,
                                                                                               4,19,15,10,
                                                                                               5,12,16,11,
                                                                                               18,13,17,20)])
-
+} else if ('ratio1' == expName)
+{
+  dTableShaped$testedRatio = factor(dTableShaped$testedRatio)
+}
 setkey(dTableShaped , participantID, trialID)
 dTableShaped[ is.na(dTableShaped) ] <- NA # replace MATLAB NaN with R-friendly NA 
 dTableShaped$participantID<-as.factor(dTableShaped$participantID)
