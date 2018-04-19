@@ -27,7 +27,7 @@ Screen('FillRect', windowPtr, [1 1 1 ]);
 ln1 = 'Great work! Take a quick break.';
 ln2 = ['About ' num2str(remainingTime) ' minutes remaining.' ];
 ln3 = ['You have earned ' num2str(cumlatedPoints) '!' ];
-ln4 = ['Do you think you can get ' num2str(cumlatedPoints/remainingTime) ' more points today?'];
+ln4 = ['Do you think you can get ' num2str(cumlatedPoints/(50-remainingTime)*remainingTime) ' more points today?'];
 lnEnd = 'Press the spacebar when you are ready to try!';
 
 % Horizontally and vertically centered:
