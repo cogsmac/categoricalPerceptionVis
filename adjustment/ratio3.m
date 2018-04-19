@@ -59,8 +59,8 @@ if debugMode
 end
 
 % Basic experiment parameters
-nMinutes = 1; % maximum duration
-trialPerBlock = 2;
+nMinutes = 50; % maximum duration
+trialPerBlock = 100;
 
 % Here we call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
@@ -89,7 +89,7 @@ lightGrey = [.75 .75 .75];
 experimentOpenTime = tic; testIfTimeUp = 0;
 
 % Open an on screen window
-[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey, [1 1 1200 750]);
+[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, lightGrey);%, [1 1 1200 750]);
 Screen('Resolution', windowPtr);
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', windowPtr);
@@ -124,7 +124,6 @@ isReferenceBar = ratioArrayOpts(:,1:2) == 1;
 possibleStimTypes = {'barGraphType', 'stackedType'}; 
       condChooser = randperm(length(possibleStimTypes));
          stimType = possibleStimTypes{condChooser(1)};
-         stimType = 'barGraphType';
 
 % preparing logging variables
 sameOrDiffTrial = 'adjust';
