@@ -47,8 +47,10 @@ function [stimRect1, stimRect2, heightBar1, heightBar2] =ratio1StimulusVals(...
 rectWidth = screenSize(1)/18;
 fullRectHeight = screenSize(2)/6; % so 100% of the ratio is 1/6 the screen, changed from 1/5 in ratio1
 
-% determine heights of bars
-if strcmpi(stimType, 'barGraphType') | strcmpi(stimType, 'stackedType')
+% determine heights of bars. note that the varying dimension is width for
+% the stackedAcross type, named here as height so we can re-use extant
+% code.
+if strcmpi(stimType, 'barGraphType') | strcmpi(stimType, 'stackedType')|strcmpi(stimType, 'stackedAcross')
     heightBar1 = presentedRatio(1)*fullRectHeight;
     heightBar2 = presentedRatio(2)*fullRectHeight;
 elseif strcmpi(stimType, 'barOnlyType')
@@ -82,14 +84,28 @@ elseif strcmpi(stimType, 'stackedType')
     x2Bar1 = x1Bar1 + rectWidth;
     
     x1Bar2 = x1Bar1; x2Bar2 = x2Bar1;
+elseif strcmpi(stimType, 'stackedAcross')
+    y1Bar1 = posCenters(positionIdx, 1)+.5*(rectWidth);
+    y2Bar1 = y1Bar1 - rectWidth;
+    
+    y1Bar2 = y1Bar1; y2Bar2 = y2Bar1;
+    
 end
 if presentedRatio(1)==1 % if the left bar is larger
-    y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
-    y2Bar1 = y1Bar1 + heightBar1;
+    
     if strcmpi(stimType, 'barGraphType') | strcmpi(stimType, 'stackedType')
+        y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
+        y2Bar1 = y1Bar1 + heightBar1;
+    
         y1Bar2 = y2Bar1 - heightBar2; % not quite as tall as bar 1
         y2Bar2 = y2Bar1; % positions along aligned scale -- bottoms line up.
+    elseif strcmpi(stimType, 'stackedAcross')
+        x1Bar2 = posCenters(positionIdx, 2)-.5*(heightBar1); % not quite as tall as bar 1
+        x2Bar2 = x2Bar1; % positions along aligned scale -- bottoms line up.
     else
+        y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
+        y2Bar1 = y1Bar1 + heightBar1;
+    
         y1Bar2 = NaN;
         y2Bar2 = NaN;
     end
@@ -101,6 +117,12 @@ else
         
         y1Bar1 = y2Bar2 - heightBar1; % not quite as tall as bar 2
         y2Bar1 = y2Bar2; % positions along aligned scale -- bottoms line up.
+        
+    elseif strcmpi(stimType, 'stackedAcross')
+        x1Bar1 = posCenters(positionIdx, 1)-.5*(heightBar1);
+        x2Bar1 = x1Bar1 + heightBar1;
+    
+        x1Bar2 = x1Bar1; x2Bar2 = x2Bar1;
     else
         y1Bar1 = posCenters(positionIdx, 2)-.5*(heightBar1); % lower value is higher on screen; origin (0, 0) top left
         y2Bar1 = y1Bar1 + heightBar1;
